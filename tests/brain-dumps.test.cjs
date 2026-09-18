@@ -145,6 +145,6 @@ test('UI has one input and response without navigation tabs', () => {
   assert.match(html, /class="brand">BrainDumps<\/div>.*class="sub">Free your mind, one dump at a time\./);
   assert.match(html, /id="catchResponse"/);
   assert.equal((html.match(/<textarea /g) || []).length, 1);
-  assert.match(html, /id="saveCatch"[^>]*>Submit<\/button>/);
+  assert.match(html, /id="saveCatch"[^>]*>Dump<\/button>/);
   assert.doesNotMatch(html, /id="catchTab"|id="askTab"|Catch saves your thought|data-mode=/);
 });

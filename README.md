@@ -6,7 +6,7 @@ BrainDumps is a Google Apps Script web app based on BrainCatch. It gives each si
 
 ## What it does
 
-- **Submit:** use one text box to share a thought or ask a question. Thoughts get a brief organized response, with clear actions shown as a plain **To-dos** section. Questions receive an answer based on the complete saved archive. The original text and response are retained. Raw input still saves if AI is unavailable.
+- **Dump:** use one text box to share a thought or ask a question. Thoughts get a brief organized response, with clear actions shown as a plain **To-dos** section. Questions receive an answer based on the complete saved archive. The original text and response are retained. Raw input still saves if AI is unavailable.
 
 Voice dictation uses the browser's SpeechRecognition API when available. Typing always works.
 

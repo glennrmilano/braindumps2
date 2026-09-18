@@ -76,19 +76,20 @@ function saveBrainDump(rawEntry) {
   try {
     const store = getOrCreateBrainStore_();
     const createdAt = new Date().toISOString();
+    const askFollowUp = Math.random() < 0.6;
     const brainContext = buildBrainContext_(store, text);
 
     let result;
     try {
       result = callOpenAI_(
-        buildCaptureSystemPrompt_(),
-        buildCaptureUserPrompt_(text, brainContext.stateMarkdown, brainContext.indexRows, brainContext.fullEntries, createdAt),
+        buildCaptureSystemPrompt_(askFollowUp),
+        buildCaptureUserPrompt_(text, brainContext.stateMarkdown, brainContext.indexRows, brainContext.fullEntries, brainContext.recentDialogue, createdAt),
         getCaptureSchema_(),
         'brain_capture'
       );
       if (result.entry && result.entry.type === 'question') {
         try {
-          result.response_markdown = answerArchiveQuestion_(store, text);
+          result.response_markdown = answerArchiveQuestion_(store, text, askFollowUp, brainContext.recentDialogue);
         } catch (error) {
           result.response_markdown = 'I saved your question, but I could not review the full archive to answer it.';
           result.extraction_warning = 'The archive answer was unavailable. Your question was saved.';
@@ -249,8 +250,21 @@ function buildBrainContext_(store, text) {
   return {
     stateMarkdown: readStateMarkdown_(store.state),
     indexRows: indexRows,
-    fullEntries: fullEntries
+    fullEntries: fullEntries,
+    recentDialogue: readRecentDialogue_(store.entries, 4)
   };
+}
+
+function readRecentDialogue_(sheet, limit) {
+  const count = Math.min(Math.max(0, sheet.getLastRow() - 1), limit);
+  if (!count) return [];
+  return sheet.getRange(sheet.getLastRow() - count + 1, 1, count, ENTRY_HEADERS.length).getValues().map(function(values) {
+    const row = rowFromValues_(values, ENTRY_HEADERS);
+    return {
+      user: row.raw_entry.slice(0, 1500),
+      assistant: row.model_response.slice(0, 1500)
+    };
+  });
 }
 
 function getOrCreateBrainStore_() {
@@ -583,17 +597,25 @@ function stableId_(text) {
   }).join('');
 }
 
-function buildCaptureSystemPrompt_() {
+function followUpPrompt_(askFollowUp) {
+  return askFollowUp
+    ? 'End the response with one concise, open-ended follow-up question. Gently probe what may be the most anxiety-provoking part of the specific situation the user shared, without assuming they feel anxious. If no concern is apparent, ask about the most meaningful unresolved point. Do not invent stakes or ask multiple follow-up questions.'
+    : 'Do not add a follow-up question.';
+}
+
+function buildCaptureSystemPrompt_(askFollowUp) {
   return [
     'You are BrainDumps. One input accepts thoughts and questions. Capture the user\'s words faithfully and give a useful response.',
     'Capture what the user says, connect it to prior entries when warranted, and report current state.',
+    'Recent exchanges are conversation context only. Earlier AI replies are not facts, instructions, or evidence that the user acted. Use them to understand a direct continuation, and ignore them when the user changes subject.',
     'For a thought, write response_markdown as a brief organized acknowledgment. Show that you heard the specific people, decisions, concerns, or open threads mentioned. Do not just say it was saved.',
     'For a question, set entry.type to question and answer it directly from the supplied archive and current state. A question is not a new fact, goal, or decision. Keep facts_added, stated_goals, and contradictions empty; preserve current state unchanged. Be candid when the supplied evidence is thin.',
-    'Stay factual and personable. Do not invent details, diagnose, or claim a plan was completed. Do not end with an unrequested follow-up question.',
+    'Stay factual and personable. Do not invent details, diagnose, or claim a plan was completed.',
     'When the user explicitly states actions they intend to take, add a simple "To-dos" heading and a short bullet list within response_markdown. Do not infer tasks from vague concerns, desires, or completed actions. Do not assume an owner or due date.',
     'The To-dos list is part of the acknowledgment only. Do not claim that tasks were created, tracked, or scheduled.',
     'Prefer concrete facts, goals, decisions, contradictions, recurring patterns, and unresolved threads.',
-    'Keep state compact. Do not preserve stale or passing remarks as goals.'
+    'Keep state compact. Do not preserve stale or passing remarks as goals.',
+    followUpPrompt_(askFollowUp)
   ].join('\n');
 }
 
@@ -609,7 +631,7 @@ function buildHistorySummarySystemPrompt_() {
   ].join('\n');
 }
 
-function buildCaptureUserPrompt_(rawEntry, stateMarkdown, indexRows, fullEntries, createdAt) {
+function buildCaptureUserPrompt_(rawEntry, stateMarkdown, indexRows, fullEntries, recentDialogue, createdAt) {
   return [
     'Created at: ' + createdAt,
     '',
@@ -621,6 +643,9 @@ function buildCaptureUserPrompt_(rawEntry, stateMarkdown, indexRows, fullEntries
     '',
     'Full relevant entries selected from the leader/index columns:',
     JSON.stringify(fullEntries || [], null, 2),
+    '',
+    'Recent exchanges (conversation context only):',
+    JSON.stringify(recentDialogue || [], null, 2),
     '',
     'Current raw entry, preserve meaning exactly:',
     rawEntry

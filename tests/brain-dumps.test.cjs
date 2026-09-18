@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const crypto = require('node:crypto');
 
-function harness({ model = true } = {}) {
+function harness({ model = true, random = 0.99 } = {}) {
   class Sheet {
     constructor(name = 'Sheet1') { this.name = name; this.rows = []; }
     getName() { return this.name; }
@@ -41,6 +41,7 @@ function harness({ model = true } = {}) {
   let seq = 0;
   const propertyStore = map => ({ getProperty: key => map.get(key) || '', setProperty: (key, value) => map.set(key, value), deleteProperty: key => map.delete(key), getProperties: () => Object.fromEntries(map) });
   const context = vm.createContext({
+    Math: Object.assign(Object.create(Math), { random: () => Array.isArray(random) ? random.shift() : random }),
     SpreadsheetApp: { create: () => book, openById: id => { if (id !== book.id) throw new Error('not found'); return book; } },
     PropertiesService: { getUserProperties: () => propertyStore(user), getScriptProperties: () => propertyStore(script) },
     LockService: { getUserLock: () => ({ waitLock() {}, releaseLock() {} }) },
@@ -94,6 +95,26 @@ test('Catch response omits To-dos for a thought without an explicit action', () 
   assert.doesNotMatch(result.responseMarkdown, /To-dos/);
 });
 
+test('follow-up choice is made independently for every Dump at a 60% threshold', () => {
+  const turns = harness({ random: [0.59, 0.6] });
+  turns.context.saveBrainDump('A thought worth keeping.');
+  turns.context.saveBrainDump('Another thought worth keeping.');
+  assert.match(turns.requests[0].messages[0].content, /End the response with one concise, open-ended follow-up question/);
+  assert.match(turns.requests[1].messages[0].content, /Do not add a follow-up question/);
+  const question = harness({ random: 0.59 });
+  question.context.saveBrainDump('What did I say?');
+  assert.match(question.requests.at(-1).messages[0].content, /End the response with one concise, open-ended follow-up question/);
+});
+
+test('a reply can use the previous exchange without treating the AI response as a fact', () => {
+  const { context, requests } = harness();
+  context.saveBrainDump('I will call Sam tomorrow.');
+  context.saveBrainDump('That part makes me nervous.');
+  const second = requests.filter(request => request.response_format.json_schema.name === 'brain_capture')[1];
+  assert.match(second.messages[1].content, /You plan to speak with Sam tomorrow/);
+  assert.match(second.messages[0].content, /Earlier AI replies are not facts/);
+});
+
 test('a question reviews the archive without rewriting saved state', () => {
   const { context, book, requests } = harness();
   context.saveBrainDump('I will call Sam tomorrow.');
@@ -104,6 +125,7 @@ test('a question reviews the archive without rewriting saved state', () => {
   assert.equal(context.getAppConfig().stateMarkdown, before);
   assert.equal(requests.at(-1).response_format.json_schema.name, 'brain_dump_ask');
   assert.match(requests.at(-1).messages[1].content, /I will call Sam tomorrow/);
+  assert.match(requests.at(-1).messages[0].content, /Do not add a follow-up question/);
 });
 
 test('an inaccessible existing archive is preserved instead of replaced', () => {

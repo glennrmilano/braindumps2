@@ -6,14 +6,13 @@ BrainDumps is a Google Apps Script web app based on BrainCatch. It gives each si
 
 ## What it does
 
-- **Catch:** save a typed or dictated thought and get a brief organized response. Clear actions appear as a simple **To-dos** section in that response; BrainDumps does not track them. The original text and response are retained. Raw capture still saves if AI is unavailable.
-- **Ask:** use Neutral, Brainstorm, or Coach in a saved conversation. Switch modes between replies. Every new conversation starts Neutral. Replies are grounded in the capture archive; conversation turns are kept separate from the captured-thought evidence.
+- **Submit:** use one text box to share a thought or ask a question. Thoughts get a brief organized response, with clear actions shown as a plain **To-dos** section. Questions receive an answer based on the complete saved archive. The original text and response are retained. Raw input still saves if AI is unavailable.
 
 Voice dictation uses the browser's SpeechRecognition API when available. Typing always works.
 
 ## Storage
 
-The app creates a spreadsheet named `BrainDumps - My Brain` on first use and saves its ID in that user's Apps Script user properties. Sheets are `Entries`, `Index`, `State`, `Conversations`, and `Ask Messages`. Entries and Ask messages are stored separately. Existing `Todos` sheets from earlier versions are left untouched. Each user operates on their own spreadsheet because the web app executes as the accessing user.
+The app creates a spreadsheet named `BrainDumps - My Brain` on first use and saves its ID in that user's Apps Script user properties. The single input uses `Entries`, `Index`, and `State`. Existing `Conversations`, `Ask Messages`, and `Todos` sheets from earlier versions are left untouched. Questions are marked as questions so they do not rewrite saved state. Each user operates on their own spreadsheet because the web app executes as the accessing user.
 
 ## Local checks
 
@@ -30,7 +29,7 @@ The HTML can be opened locally for visual inspection, but data actions need a de
 2. After local changes, run `npx @google/clasp push -f` to update this project. The first source push has been completed.
 3. Set script property `OPENAI_API_KEY`. `OPENAI_MODEL` is optional; it defaults to `gpt-5.6-luna` and uses `gpt-4o-mini` only for documented compatibility failures.
 4. Deploy as a web app with **Execute as: User accessing the web app**. The manifest sets the audience to **Anyone**, so each user must authorize Sheets and external requests. Use a narrower audience in the deployment settings if desired.
-5. Check Catch and Ask with test accounts before sharing the URL.
+5. Check a thought and an archive question with test accounts before sharing the URL.
 
 `MarkdownLibraries.html` is bundled locally. Run `npm run build:markdown` after changing the pinned Markdown dependencies.
 

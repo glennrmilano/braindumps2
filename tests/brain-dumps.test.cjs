@@ -37,6 +37,7 @@ function harness({ model = true } = {}) {
   const script = new Map(model ? [['OPENAI_API_KEY', 'test-key']] : []);
   const triggers = [];
   const mail = [];
+  const requests = [];
   let seq = 0;
   const propertyStore = map => ({ getProperty: key => map.get(key) || '', setProperty: (key, value) => map.set(key, value), deleteProperty: key => map.delete(key), getProperties: () => Object.fromEntries(map) });
   const context = vm.createContext({
@@ -49,20 +50,22 @@ function harness({ model = true } = {}) {
     Utilities: { getUuid: () => String(++seq), formatDate: date => date.toISOString().slice(0, 10), DigestAlgorithm: { SHA_256: 'sha256' }, computeDigest: (_, text) => Array.from(crypto.createHash('sha256').update(text).digest()) },
     UrlFetchApp: { fetch: (_, options) => {
       const payload = JSON.parse(options.payload);
+      requests.push(payload);
       const name = payload.response_format.json_schema.name;
+      const question = name === 'brain_capture' && payload.messages[1].content.includes('What did I say?');
       const output = name === 'brain_capture' ? {
-        entry: { type: 'mixed', title: 'Call Sam', gist: 'Call Sam', topics: [], entities: [], active_threads: [], stated_goals: [], facts_added: [], contradicts: [], retrieval_keywords: [], extracted_markdown: 'Call Sam' },
+        entry: { type: question ? 'question' : 'mixed', title: 'Call Sam', gist: 'Call Sam', topics: [], entities: [], active_threads: [], stated_goals: [], facts_added: [], contradicts: [], retrieval_keywords: [], extracted_markdown: 'Call Sam' },
         state: { current_summary: 'Call Sam', goals: [], open_threads: [], watch_list: [] },
-        response_markdown: payload.messages[1].content.includes('I will call Sam') ? 'You plan to speak with Sam tomorrow.\n\n### To-dos\n- Call Sam' : 'You shared a thought worth keeping.', relevant_entry_ids: []
+        response_markdown: question ? 'You said you planned to call Sam.' : payload.messages[1].content.includes('I will call Sam') ? 'You plan to speak with Sam tomorrow.\n\n### To-dos\n- Call Sam' : 'You shared a thought worth keeping.', relevant_entry_ids: []
       } : name === 'brain_dump_ask' ? {
-        answer_markdown: 'A grounded answer', relevant_entry_ids: []
+        answer_markdown: payload.messages[1].content.includes('What did I say?') ? 'You said you planned to call Sam.' : 'A grounded answer', relevant_entry_ids: []
       } : { summary_markdown: 'Summary', relevant_entry_ids: [] };
       return { getResponseCode: () => 200, getContentText: () => JSON.stringify({ choices: [{ message: { content: JSON.stringify(output) } }] }) };
     } },
   });
   vm.runInContext(fs.readFileSync('Code.gs', 'utf8'), context);
   vm.runInContext(fs.readFileSync('BrainDump.gs', 'utf8'), context);
-  return { context, book, mail, triggers, user };
+  return { context, book, mail, triggers, user, requests };
 }
 
 test('Catch saves original text and returns an organized response with inline to-dos', () => {
@@ -91,6 +94,18 @@ test('Catch response omits To-dos for a thought without an explicit action', () 
   assert.doesNotMatch(result.responseMarkdown, /To-dos/);
 });
 
+test('a question reviews the archive without rewriting saved state', () => {
+  const { context, book, requests } = harness();
+  context.saveBrainDump('I will call Sam tomorrow.');
+  const before = context.getAppConfig().stateMarkdown;
+  const result = context.saveBrainDump('What did I say?');
+  assert.match(result.responseMarkdown, /planned to call Sam/);
+  assert.equal(book.getSheetByName('Entries').rows[2][2], 'question');
+  assert.equal(context.getAppConfig().stateMarkdown, before);
+  assert.equal(requests.at(-1).response_format.json_schema.name, 'brain_dump_ask');
+  assert.match(requests.at(-1).messages[1].content, /I will call Sam tomorrow/);
+});
+
 test('an inaccessible existing archive is preserved instead of replaced', () => {
   const { context, user } = harness();
   user.set('BRAIN_DUMP_SPREADSHEET_ID', 'inaccessible-book');
@@ -115,7 +130,7 @@ test('Ask persists switched modes and keeps archive unchanged', () => {
   assert.equal(conversation.messages[0].mode, 'neutral');
   assert.equal(conversation.messages[2].mode, 'coach');
   assert.equal(context.getAppConfig().entryCount, 1);
-  assert.equal(context.getAppConfig().conversations.length, 1);
+  assert.equal(context.getConversations().length, 1);
 });
 
 test('legacy todo reminder triggers cannot send email', () => {
@@ -125,10 +140,11 @@ test('legacy todo reminder triggers cannot send email', () => {
   assert.equal(mail.length, 0);
 });
 
-test('UI shows the Catch response and no task manager', () => {
+test('UI has one input and response without navigation tabs', () => {
   const html = fs.readFileSync('Index.html', 'utf8');
   assert.match(html, /class="brand">BrainDumps<\/div>.*class="sub">Free your mind, one dump at a time\./);
   assert.match(html, /id="catchResponse"/);
-  assert.doesNotMatch(html, /id="todosTab"|Add to todos|id="reminderToggle"/);
-  for (const mode of ['neutral', 'brainstorm', 'coach']) assert.match(html, new RegExp('data-mode="' + mode + '"'));
+  assert.equal((html.match(/<textarea /g) || []).length, 1);
+  assert.match(html, /id="saveCatch"[^>]*>Submit<\/button>/);
+  assert.doesNotMatch(html, /id="catchTab"|id="askTab"|Catch saves your thought|data-mode=/);
 });

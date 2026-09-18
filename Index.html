@@ -23,12 +23,8 @@
     .brand-divider { width:1px; height:24px; background:#d8d4ca; }
     main { max-width:1080px; margin:12px auto; padding:0 14px 40px; }
     .panel { background:#fffefa; border:1px solid #e1ddd4; border-radius:10px; box-shadow:0 10px 30px #2327240a; margin-bottom:12px; }
-    .tabs { display:grid; grid-template-columns:repeat(2,1fr); gap:4px; padding:4px; border-bottom:1px solid #e1ddd4; }
-    .tabs button { border:0; background:transparent; min-height:28px; padding:5px 8px; }
-    .tabs button.active { background:#e0eeeb; color:#205b58; }
     .inside { padding:14px; }
     h2 { font-size:16px; margin:0 0 12px; }
-    p.hint { color:#68706b; font-size:14px; margin:0 0 12px; }
     textarea { width:100%; min-height:215px; resize:vertical; padding:13px; border:1px solid #d9d5cb; border-radius:8px; background:#fff; line-height:1.5; }
     #catchInput { height:430px; }
     input[type=text],input[type=date] { width:100%; min-height:40px; padding:8px; border:1px solid #d9d5cb; border-radius:7px; background:#fff; }
@@ -36,35 +32,15 @@
     .actions { justify-content:space-between; margin-top:9px; }
     .status { color:#5c6a63; min-height:22px; margin-top:10px; font-size:13px; }
     .status.error { color:#923a31; font-weight:650; }
-    .ask-toolbar { display:flex; align-items:center; gap:7px; margin-bottom:9px; }
-    .seg { display:flex; flex:1; gap:4px; min-width:0; }
-    .seg button { flex:1; min-width:0; min-height:26px; padding:3px 5px; font-size:13px; }
-    .ask-shortcuts { display:flex; gap:4px; }
-    .ask-shortcuts button { min-height:26px; padding:3px 9px; font-size:13px; }
-    #historyToggle { display:none; }
-    .stack { display:grid; gap:10px; }
     .item { padding:12px; border:1px solid #e0ddd4; border-radius:8px; background:#fff; }
-    .item.user { background:#f4f8f6; }
-    .item .label { color:#68706b; font-size:12px; font-weight:700; margin-bottom:6px; }
-    .item p { margin:6px 0; }
-    .item input[type=text] { flex:1 1 250px; }
-    .item .row { margin-top:8px; }
-    .layout { display:grid; grid-template-columns:minmax(0,1fr) 245px; gap:12px; }
-    .side { border-left:1px solid #e1ddd4; padding:18px 12px; }
-    .side button { display:block; width:100%; text-align:left; border:0; background:transparent; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-    .side button.active { color:#205b58; background:#e0eeeb; }
-    .messages { max-height:480px; overflow:auto; margin-top:12px; }
     .output { line-height:1.55; overflow-wrap:anywhere; }
     .output > :first-child { margin-top:0; }
     .output > :last-child { margin-bottom:0; }
     .output pre { overflow:auto; }
     .output table { display:block; overflow:auto; border-collapse:collapse; }
     .output th,.output td { border:1px solid #ddd; padding:6px; }
-    .minor { color:#737d76; font-size:12px; }
-    .badge { display:inline-block; color:#22615d; background:#e0eeeb; border-radius:20px; padding:3px 8px; font-size:12px; }
-    @media(max-width:700px) { header{padding:4px 10px;min-height:40px;} .brandline{gap:5px;} .brand{font-size:18px;} .sub{font-size:11px;} .brand-divider{height:18px;} .header-links{gap:2px;} #helpButton{font-size:0;min-width:28px;padding:4px;} #helpButton::before{content:"?";font-size:14px;} main{margin:4px auto;padding:0 7px 20px;} .layout{display:block;} .side{display:none;border-left:0;border-top:1px solid #e1ddd4;padding:10px;} #askPane.history-open .side{display:block;} #historyToggle{display:inline-block;} .inside{padding:9px;} .tabs button{min-height:24px;padding:3px 5px;} textarea{min-height:130px;max-height:28dvh;font-size:16px;} #catchInput{height:260px;max-height:none;} .messages{max-height:none;} .ask-toolbar{margin-bottom:6px;} .ask-shortcuts button{padding:3px 7px;} }
+    @media(max-width:700px) { header{padding:4px 10px;min-height:40px;} .brandline{gap:5px;} .brand{font-size:18px;} .sub{font-size:11px;} .brand-divider{height:18px;} .header-links{gap:2px;} #helpButton{font-size:0;min-width:28px;padding:4px;} #helpButton::before{content:"?";font-size:14px;} main{margin:4px auto;padding:0 7px 20px;} .inside{padding:9px;} textarea{min-height:130px;max-height:28dvh;font-size:16px;} #catchInput{height:260px;max-height:none;} }
     @media(max-width:430px) { header{flex-wrap:wrap;} .header-links{width:100%;justify-content:flex-end;margin-top:-3px;} }
-    @media(max-width:359px) { .ask-toolbar{flex-wrap:wrap;} .seg{flex-basis:100%;} .ask-shortcuts{margin-left:auto;} }
   </style>
 </head>
 <body>
@@ -74,37 +50,19 @@
 </header>
 <main>
   <div class="panel">
-    <nav class="tabs" aria-label="Sections">
-      <button id="catchTab" class="active" type="button">Catch</button>
-      <button id="askTab" type="button">Ask</button>
-    </nav>
     <section id="catchPane" class="inside">
-      <p class="hint">Catch saves your thought and reflects it back. Ask explores your archive.</p>
-      <textarea id="catchInput" aria-label="Your thought" placeholder="What's on your mind?"></textarea>
-      <div class="actions"><div class="row"><button id="clearCatch" type="button">Clear</button><button id="micButton" type="button" hidden>Dictate</button></div><button id="saveCatch" class="primary" type="button">Catch</button></div>
+      <textarea id="catchInput" aria-label="Your thought or question" placeholder="What's on your mind? Start anywhere. Search your archive or share something new."></textarea>
+      <div class="actions"><div class="row"><button id="clearCatch" type="button">Clear</button><button id="micButton" type="button" hidden>Dictate</button></div><button id="saveCatch" class="primary" type="button">Submit</button></div>
       <div id="catchStatus" class="status" role="status"></div>
       <section id="catchResponse" class="item" aria-label="Catch response" hidden><h2>Response</h2><div id="catchResponseText" class="output"></div></section>
     </section>
-    <section id="askPane" hidden>
-      <div class="layout">
-        <div class="inside">
-          <div class="ask-toolbar"><div class="seg" role="group" aria-label="Response mode"><button data-mode="neutral" class="active" type="button">Neutral</button><button data-mode="brainstorm" type="button">Brainstorm</button><button data-mode="coach" type="button">Coach</button></div><div class="ask-shortcuts"><button id="newConversation" type="button" aria-label="New conversation" title="New conversation">+ New</button><button id="historyToggle" type="button" aria-expanded="false">History</button></div></div>
-          <textarea id="askInput" aria-label="Ask BrainDumps" placeholder="Ask about your saved thoughts, explore ideas, or get coaching."></textarea>
-          <div class="actions"><span class="minor">Ask conversations are saved separately from Catches.</span><button id="sendAsk" class="primary" type="button">Ask</button></div>
-          <div id="askStatus" class="status" role="status"></div>
-          <h2 id="conversationTitle" hidden>New conversation</h2>
-          <div id="messages" class="messages stack"></div>
-        </div>
-        <aside class="side"><h2>Conversations</h2><div id="conversations" class="stack"></div></aside>
-      </div>
-    </section>
   </div>
 </main>
-<div id="helpPanel" class="panel" hidden style="position:fixed;top:52px;right:10px;max-width:330px;z-index:3;padding:14px;box-shadow:0 14px 40px #0002"><strong>BrainDumps</strong><p>Catch saves your thought and gives a brief organized response, including any clear to-dos you mentioned. Ask reads your archive in Neutral, Brainstorm, or Coach.</p><button id="closeHelp" type="button">Close</button></div>
+<div id="helpPanel" class="panel" hidden style="position:fixed;top:52px;right:10px;max-width:330px;z-index:3;padding:14px;box-shadow:0 14px 40px #0002"><strong>BrainDumps</strong><p>Share a thought or ask a question. BrainDumps saves what you write and responds using your archive. Clear actions you mention appear as to-dos in the response.</p><button id="closeHelp" type="button">Close</button></div>
 <?!= includeMarkdownLibraries_(); ?>
 <script>
   const $ = selector => document.querySelector(selector);
-  const state = { tab:'catch', mode:'neutral', conversationId:'', conversations:[], busy:false, listening:false };
+  const state = { busy:false, listening:false };
   function escapeHtml(value) { return String(value == null ? '' : value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
   function markdown(value) { const text=String(value||''); return window.marked && window.DOMPurify ? DOMPurify.sanitize(marked.parse(text,{gfm:true}),{USE_PROFILES:{html:true}}) : escapeHtml(text).replace(/\n/g,'<br>'); }
   function call(name,args,onSuccess,statusEl) {
@@ -112,47 +70,12 @@
     if (!window.google || !google.script || !google.script.run) { state.busy=false; if(statusEl) { statusEl.textContent='Open the deployed Apps Script web app to use this feature.'; statusEl.classList.add('error'); } return; }
     google.script.run.withSuccessHandler(result=>{state.busy=false; if(statusEl) statusEl.textContent=''; onSuccess(result);}).withFailureHandler(error=>{state.busy=false; if(statusEl) {statusEl.textContent=error.message||String(error); statusEl.classList.add('error');}})[name](...args);
   }
-  function setTab(tab) {
-    state.tab=tab;
-    for(const name of ['catch','ask']) { $('#'+name+'Pane').hidden=name!==tab; $('#'+name+'Tab').classList.toggle('active',name===tab); }
-    if(tab==='ask') refreshConversations();
-  }
-  $('#catchTab').onclick=()=>setTab('catch'); $('#askTab').onclick=()=>setTab('ask');
   $('#helpButton').onclick=()=>{$('#helpPanel').hidden=!$('#helpPanel').hidden;}; $('#closeHelp').onclick=()=>{$('#helpPanel').hidden=true;};
-  $('#historyToggle').onclick=()=>{const open=$('#askPane').classList.toggle('history-open'); $('#historyToggle').setAttribute('aria-expanded',String(open));};
   $('#clearCatch').onclick=()=>{$('#catchInput').value=''; $('#catchInput').focus();};
   $('#saveCatch').onclick=()=>{
     const text=$('#catchInput').value.trim(); if(text.length<3||state.busy||state.listening) return;
     call('saveBrainDump',[text],result=>{ $('#catchInput').value=''; $('#catchInput').blur(); $('#catchStatus').textContent=result.warning ? result.warning : 'Saved.'; $('#catchResponseText').innerHTML=markdown(result.responseMarkdown); $('#catchResponse').hidden=false; },$('#catchStatus'));
   };
-  document.querySelectorAll('[data-mode]').forEach(button=>button.onclick=()=>{state.mode=button.dataset.mode; document.querySelectorAll('[data-mode]').forEach(x=>x.classList.toggle('active',x===button));});
-  $('#newConversation').onclick=()=>{state.conversationId=''; state.mode='neutral'; $('[data-mode="neutral"]').click(); $('#conversationTitle').textContent='New conversation'; $('#conversationTitle').hidden=true; $('#messages').replaceChildren(); $('#askInput').value=''; $('#askPane').classList.remove('history-open'); $('#historyToggle').setAttribute('aria-expanded','false'); renderConversations();};
-  $('#sendAsk').onclick=()=>{
-    const text=$('#askInput').value.trim(); if(text.length<3||state.busy) return;
-    const previous=state.conversationId;
-    call('sendAskMessage',[previous,state.mode,text],result=>{
-      state.conversationId=result.conversationId; $('#askInput').value='';
-      appendMessage({role:'user',mode:state.mode,content:text});
-      appendMessage({role:'assistant',mode:state.mode,content:result.answerMarkdown,message_id:result.messageId});
-      if(!previous) {$('#conversationTitle').textContent=text.slice(0,80); $('#conversationTitle').hidden=false;}
-      refreshConversations();
-    },$('#askStatus'));
-  };
-  function appendMessage(message) {
-    const card=document.createElement('div'); card.className='item '+(message.role==='user'?'user':'');
-    const label=document.createElement('div'); label.className='label'; label.textContent=(message.role==='user'?'You':'BrainDumps')+' · '+(message.mode||'neutral');
-    const content=document.createElement('div'); content.className='output'; content.innerHTML=message.role==='assistant'?markdown(message.content):escapeHtml(message.content).replace(/\n/g,'<br>');
-    card.append(label,content);
-    $('#messages').append(card); $('#messages').scrollTop=$('#messages').scrollHeight;
-  }
-  function refreshConversations() { call('getConversations',[],rows=>{state.conversations=rows; renderConversations();},$('#askStatus')); }
-  function renderConversations() {
-    const box=$('#conversations'); box.replaceChildren();
-    state.conversations.forEach(item=>{const button=document.createElement('button'); button.textContent=item.title||'Conversation'; button.classList.toggle('active',item.conversation_id===state.conversationId); button.onclick=()=>openConversation(item.conversation_id); box.append(button);});
-  }
-  function openConversation(id) {
-    call('getConversation',[id],result=>{state.conversationId=id; $('#conversationTitle').textContent=result.conversation.title; $('#conversationTitle').hidden=false; $('#messages').replaceChildren(); result.messages.forEach(appendMessage); $('#askPane').classList.remove('history-open'); $('#historyToggle').setAttribute('aria-expanded','false'); renderConversations();},$('#askStatus'));
-  }
   const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(SpeechRecognition) {
     const mic=$('#micButton'); mic.hidden=false;
@@ -167,8 +90,7 @@
   }
   call('getAppConfig',[],config=>{
     $('#sheetLink').href=config.spreadsheetUrl; $('#sheetLink').hidden=false;
-    state.conversations=config.conversations||[]; renderConversations();
-    if(!config.openAIConfigured) {$('#catchStatus').textContent='OPENAI_API_KEY is not set. Catch will save raw thoughts; an organized response and Ask need the key.'; $('#catchStatus').classList.add('error');}
+    if(!config.openAIConfigured) {$('#catchStatus').textContent='OPENAI_API_KEY is not set. Thoughts will still save, but responses need the key.'; $('#catchStatus').classList.add('error');}
   },$('#catchStatus'));
 </script>
 </body>

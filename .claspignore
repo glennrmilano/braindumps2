@@ -1,0 +1,8 @@
+node_modules/**
+tests/**
+scripts/**
+README.md
+package.json
+package-lock.json
+.git/**
+.DS_Store

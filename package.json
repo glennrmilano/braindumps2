@@ -1,0 +1,14 @@
+{
+  "name": "braindumps-apps-script",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build:markdown": "node scripts/build-markdown.cjs",
+    "test": "node --test tests/*.test.cjs"
+  },
+  "devDependencies": {
+    "dompurify": "3.4.15",
+    "jsdom": "26.1.0",
+    "marked": "18.0.13"
+  }
+}

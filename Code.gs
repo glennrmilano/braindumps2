@@ -60,9 +60,7 @@ function getAppConfig() {
     recentEntries: readRecentIndex_(store.index, 8),
     openAIConfigured: openAIKeyStatus.configured,
     scriptPropertyNames: openAIKeyStatus.propertyNames,
-    todos: listTodos_(extras.todos),
     conversations: listConversations_(extras.conversations),
-    reminderEnabled: PropertiesService.getUserProperties().getProperty('BRAIN_DUMP_REMINDER_ENABLED') === 'true'
   };
 }
 
@@ -94,14 +92,19 @@ function saveBrainDump(rawEntry) {
       result = {
         entry: { title: titleFromText_(text), gist: titleFromText_(text) },
         state: null,
-        task_candidates: [],
-        extraction_warning: 'Saved the original thought. AI indexing and todo suggestions were unavailable.'
+        response_markdown: 'Saved your thought. An organized response is unavailable right now.',
+        extraction_warning: 'Saved the original thought. AI response and indexing were unavailable.'
       };
     }
 
     const entryId = buildEntryId_(createdAt, text);
     const entry = normalizeCaptureEntry_(result.entry || {}, text);
-    appendEntry_(store.entries, entryId, createdAt, text, entry, '');
+    const generatedResponse = String(result.response_markdown || '').trim();
+    const responseMarkdown = generatedResponse || 'Saved your thought. An organized response is unavailable right now.';
+    if (!generatedResponse && !result.extraction_warning) {
+      result.extraction_warning = 'Saved the original thought, but the AI response was empty.';
+    }
+    appendEntry_(store.entries, entryId, createdAt, text, entry, responseMarkdown);
     appendIndex_(store.index, entryId, createdAt, entry);
     if (result.state) rewriteState_(store.state, result.state, createdAt);
 
@@ -109,7 +112,7 @@ function saveBrainDump(rawEntry) {
       mode: 'capture',
       entryId: entryId,
       spreadsheetUrl: store.spreadsheet.getUrl(),
-      taskCandidates: cleanArray_(result.task_candidates).map(function(item) { return item.slice(0, 500); }).filter(function(item) { return item.length >= 3; }).slice(0, 8),
+      responseMarkdown: responseMarkdown,
       warning: result.extraction_warning || '',
       stateMarkdown: readStateMarkdown_(store.state),
       recentEntries: readRecentIndex_(store.index, 8),
@@ -575,14 +578,14 @@ function stableId_(text) {
 
 function buildCaptureSystemPrompt_() {
   return [
-    'You are BrainDumps, a factual personal memory and extraction layer.',
-    'Catch saves the user input. Do not write a reflective response.',
+    'You are BrainDumps in Catch mode. Receive the user\'s thought, save its meaning faithfully, and give a useful acknowledgment.',
     'Capture what the user says, connect it to prior entries when warranted, and report current state.',
-    'Extract todo candidates only for explicit actions the user intends to do. Do not infer tasks from vague work, desires, or completed actions.',
-    'Return concise candidate action text without assuming owner or due date. The user must confirm candidates before they become todos.',
+    'Write response_markdown as a brief, organized response to this Catch. Show that you heard the specific people, decisions, concerns, or open threads the user mentioned. Use natural prose or a few compact bullets; do not just say it was saved.',
+    'Stay factual and personable. Do not coach, brainstorm, diagnose, ask a follow-up question, or turn the Catch into an Ask conversation. Do not invent details or claim a plan was completed.',
+    'When the user explicitly states actions they intend to take, add a simple "To-dos" heading and a short bullet list within response_markdown. Do not infer tasks from vague concerns, desires, or completed actions. Do not assume an owner or due date.',
+    'The To-dos list is part of the acknowledgment only. Do not claim that tasks were created, tracked, or scheduled.',
     'Prefer concrete facts, goals, decisions, contradictions, recurring patterns, and unresolved threads.',
-    'Keep state compact. Do not preserve stale or passing remarks as goals.',
-    'Set response_markdown to an empty string. Capture faithfully and keep state factual.'
+    'Keep state compact. Do not preserve stale or passing remarks as goals.'
   ].join('\n');
 }
 
@@ -724,7 +727,7 @@ function getCaptureSchema_() {
   return {
     type: 'object',
     additionalProperties: false,
-    required: ['entry', 'state', 'response_markdown', 'relevant_entry_ids', 'task_candidates'],
+    required: ['entry', 'state', 'response_markdown', 'relevant_entry_ids'],
     properties: {
       entry: {
         type: 'object',
@@ -758,8 +761,7 @@ function getCaptureSchema_() {
       },
       state: getStateSchema_(),
       response_markdown: { type: 'string' },
-      relevant_entry_ids: { type: 'array', items: { type: 'string' } },
-      task_candidates: { type: 'array', items: { type: 'string' } }
+      relevant_entry_ids: { type: 'array', items: { type: 'string' } }
     }
   };
 }

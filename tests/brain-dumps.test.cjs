@@ -53,9 +53,9 @@ function harness({ model = true } = {}) {
       const output = name === 'brain_capture' ? {
         entry: { type: 'mixed', title: 'Call Sam', gist: 'Call Sam', topics: [], entities: [], active_threads: [], stated_goals: [], facts_added: [], contradicts: [], retrieval_keywords: [], extracted_markdown: 'Call Sam' },
         state: { current_summary: 'Call Sam', goals: [], open_threads: [], watch_list: [] },
-        response_markdown: '', relevant_entry_ids: [], task_candidates: ['Call Sam']
+        response_markdown: payload.messages[1].content.includes('I will call Sam') ? 'You plan to speak with Sam tomorrow.\n\n### To-dos\n- Call Sam' : 'You shared a thought worth keeping.', relevant_entry_ids: []
       } : name === 'brain_dump_ask' ? {
-        answer_markdown: 'A grounded answer', relevant_entry_ids: [], suggested_todos: ['Review the notes']
+        answer_markdown: 'A grounded answer', relevant_entry_ids: []
       } : { summary_markdown: 'Summary', relevant_entry_ids: [] };
       return { getResponseCode: () => 200, getContentText: () => JSON.stringify({ choices: [{ message: { content: JSON.stringify(output) } }] }) };
     } },
@@ -65,24 +65,30 @@ function harness({ model = true } = {}) {
   return { context, book, mail, triggers, user };
 }
 
-test('Catch saves original text and requires confirmation before a candidate becomes a todo', () => {
+test('Catch saves original text and returns an organized response with inline to-dos', () => {
   const { context, book } = harness();
   assert.equal(context.getAppConfig().entryCount, 0);
   const result = context.saveBrainDump('I will call Sam tomorrow.');
-  assert.deepEqual(Array.from(result.taskCandidates), ['Call Sam']);
-  assert.equal(context.getTodos().length, 0);
+  assert.match(result.responseMarkdown, /You plan to speak with Sam tomorrow/);
+  assert.match(result.responseMarkdown, /### To-dos\n- Call Sam/);
   assert.equal(book.getSheetByName('Entries').rows[1][12], 'I will call Sam tomorrow.');
-  assert.equal(book.getSheetByName('Entries').rows[1][14], '');
-  const todo = context.addTodo('Call Sam', '', 'catch', result.entryId);
-  assert.equal(todo.source_id, result.entryId);
-  assert.equal(context.getTodos().length, 1);
+  assert.equal(book.getSheetByName('Entries').rows[1][14], result.responseMarkdown);
+  assert.equal(book.getSheetByName('Todos'), null);
+  assert.match(context.buildCaptureSystemPrompt_(), /To-dos/);
 });
 
 test('Catch still saves raw thoughts if AI extraction is unavailable', () => {
   const { context, book } = harness({ model: false });
   const result = context.saveBrainDump('A thought worth keeping.');
   assert.match(result.warning, /Saved the original thought/);
+  assert.match(result.responseMarkdown, /organized response is unavailable/);
   assert.equal(book.getSheetByName('Entries').rows[1][12], 'A thought worth keeping.');
+});
+
+test('Catch response omits To-dos for a thought without an explicit action', () => {
+  const { context } = harness();
+  const result = context.saveBrainDump('A thought worth keeping.');
+  assert.doesNotMatch(result.responseMarkdown, /To-dos/);
 });
 
 test('an inaccessible existing archive is preserved instead of replaced', () => {
@@ -96,51 +102,33 @@ test('formula-like thoughts stay text in Sheets and read back unchanged', () => 
   const { context, book } = harness();
   const result = context.saveBrainDump('=SUM(1,2) is what the note says');
   assert.match(book.getSheetByName('Entries').rows[1][12], /^'/);
-  assert.equal(context.getEntry(result.entryId).text, '=SUM(1,2) is what the note says');
+  assert.equal(context.readAskHistory_(book.getSheetByName('Entries'))[0].raw_entry, '=SUM(1,2) is what the note says');
 });
 
-test('Ask persists switched modes, keeps archive unchanged, and requires explicit suggestion addition', () => {
+test('Ask persists switched modes and keeps archive unchanged', () => {
   const { context } = harness();
   context.saveBrainDump('I will call Sam tomorrow.');
   const neutral = context.sendAskMessage('', 'neutral', 'What did I say?');
-  assert.equal(neutral.suggestions.length, 0);
   const coach = context.sendAskMessage(neutral.conversationId, 'coach', 'What should I consider?');
-  assert.deepEqual(Array.from(coach.suggestions), ['Review the notes']);
   const conversation = context.getConversation(neutral.conversationId);
   assert.equal(conversation.messages.length, 4);
   assert.equal(conversation.messages[0].mode, 'neutral');
   assert.equal(conversation.messages[2].mode, 'coach');
   assert.equal(context.getAppConfig().entryCount, 1);
-  assert.equal(context.getTodos().length, 0);
-  const first = context.addSuggestedTodo(neutral.conversationId, coach.messageId, 0);
-  const second = context.addSuggestedTodo(neutral.conversationId, coach.messageId, 0);
-  assert.equal(first.todo_id, second.todo_id);
-  assert.equal(context.getTodos().length, 1);
-  assert.throws(() => context.addSuggestedTodo(neutral.conversationId, coach.messageId, 9), /Suggestion not found/);
+  assert.equal(context.getAppConfig().conversations.length, 1);
 });
 
-test('Todos require current version and reminders include only open due work after opt-in', () => {
-  const { context, mail } = harness({ model: false });
-  const today = new Date().toISOString().slice(0, 10);
-  const due = context.addTodo('Finish the draft', today, 'manual', '');
-  const done = context.addTodo('Already finished', today, 'manual', '');
-  context.updateTodo(done.todo_id, done.updated_at, { status: 'done' });
-  assert.throws(() => context.updateTodo(done.todo_id, 'stale', { status: 'open' }), /changed elsewhere/);
+test('legacy todo reminder triggers cannot send email', () => {
+  const { context, mail, user } = harness({ model: false });
+  user.set('BRAIN_DUMP_REMINDER_ENABLED', 'true');
   context.sendDailyTodoReminder();
   assert.equal(mail.length, 0);
-  context.setDailyReminder(true);
-  context.sendDailyTodoReminder();
-  context.sendDailyTodoReminder();
-  assert.equal(mail.length, 1);
-  assert.match(mail[0][2], /Finish the draft/);
-  assert.doesNotMatch(mail[0][2], /Already finished/);
-  context.setDailyReminder(false);
-  assert.equal(context.getAppConfig().reminderEnabled, false);
 });
 
-test('UI uses BrainDumps branding and three Ask modes', () => {
+test('UI shows the Catch response and no task manager', () => {
   const html = fs.readFileSync('Index.html', 'utf8');
   assert.match(html, /class="brand">BrainDumps<\/div>.*class="sub">Free your mind, one dump at a time\./);
-  assert.match(html, /family=Original\+Surfer/);
+  assert.match(html, /id="catchResponse"/);
+  assert.doesNotMatch(html, /id="todosTab"|Add to todos|id="reminderToggle"/);
   for (const mode of ['neutral', 'brainstorm', 'coach']) assert.match(html, new RegExp('data-mode="' + mode + '"'));
 });

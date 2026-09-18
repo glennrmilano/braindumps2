@@ -27,7 +27,7 @@
     main { max-width:1080px; margin:12px auto; padding:0 14px 40px; }
     .panel { background:#fffefa; border:1px solid #e1ddd4; border-radius:10px; box-shadow:0 10px 30px #2327240a; margin-bottom:12px; }
     .tabs { display:grid; grid-template-columns:repeat(3,1fr); gap:4px; padding:4px; border-bottom:1px solid #e1ddd4; }
-    .tabs button { border:0; background:transparent; }
+    .tabs button { border:0; background:transparent; min-height:28px; padding:5px 8px; }
     .tabs button.active { background:#e0eeeb; color:#205b58; }
     .inside { padding:14px; }
     h2 { font-size:16px; margin:0 0 12px; }
@@ -40,9 +40,9 @@
     .status.error { color:#923a31; font-weight:650; }
     .ask-toolbar { display:flex; align-items:center; gap:7px; margin-bottom:9px; }
     .seg { display:flex; flex:1; gap:4px; min-width:0; }
-    .seg button { flex:1; min-width:0; min-height:36px; padding:6px 5px; font-size:13px; }
+    .seg button { flex:1; min-width:0; min-height:26px; padding:3px 5px; font-size:13px; }
     .ask-shortcuts { display:flex; gap:4px; }
-    .ask-shortcuts button { min-height:36px; padding:6px 9px; font-size:13px; }
+    .ask-shortcuts button { min-height:26px; padding:3px 9px; font-size:13px; }
     #historyToggle { display:none; }
     .stack { display:grid; gap:10px; }
     .item { padding:12px; border:1px solid #e0ddd4; border-radius:8px; background:#fff; }
@@ -68,7 +68,7 @@
     .minor { color:#737d76; font-size:12px; }
     .badge { display:inline-block; color:#22615d; background:#e0eeeb; border-radius:20px; padding:3px 8px; font-size:12px; }
     .divider { border-top:1px solid #e1ddd4; margin:16px 0; }
-    @media(max-width:700px) { header{padding:4px 10px;min-height:49px;} .brandline{display:block;} .brand{font-size:20px;} .sub{font-size:10px;line-height:1.1;} .brand-divider{display:none;} .header-links{gap:2px;} #helpButton{font-size:0;min-width:28px;padding:4px;} #helpButton::before{content:"?";font-size:14px;} main{margin:4px auto;padding:0 7px 20px;} .layout{display:block;} .side{display:none;border-left:0;border-top:1px solid #e1ddd4;padding:10px;} #askPane.history-open .side{display:block;} #historyToggle{display:inline-block;} .inside{padding:9px;} .tabs button{min-height:34px;padding:5px;} .todo{grid-template-columns:1fr auto;} .todo input[type=date]{grid-column:1 / -1;} textarea{min-height:130px;max-height:28dvh;font-size:16px;} .messages{max-height:none;} .ask-toolbar{margin-bottom:6px;} .ask-shortcuts button{padding:5px 7px;} }
+    @media(max-width:700px) { header{display:block;position:relative;padding:4px 10px;min-height:49px;} .brandline{display:block;} .brand{font-size:20px;} .sub{display:block;font-size:14px;line-height:1.15;white-space:nowrap;} .brand-divider{display:none;} .header-links{position:absolute;top:5px;right:10px;gap:2px;} #helpButton{font-size:0;min-width:28px;padding:4px;} #helpButton::before{content:"?";font-size:14px;} main{margin:4px auto;padding:0 7px 20px;} .layout{display:block;} .side{display:none;border-left:0;border-top:1px solid #e1ddd4;padding:10px;} #askPane.history-open .side{display:block;} #historyToggle{display:inline-block;} .inside{padding:9px;} .tabs button{min-height:24px;padding:3px 5px;} .todo{grid-template-columns:1fr auto;} .todo input[type=date]{grid-column:1 / -1;} textarea{min-height:130px;max-height:28dvh;font-size:16px;} .messages{max-height:none;} .ask-toolbar{margin-bottom:6px;} .ask-shortcuts button{padding:3px 7px;} }
     @media(max-width:359px) { .ask-toolbar{flex-wrap:wrap;} .seg{flex-basis:100%;} .ask-shortcuts{margin-left:auto;} }
   </style>
 </head>

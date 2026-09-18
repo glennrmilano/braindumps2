@@ -35,4 +35,4 @@ The HTML can be opened locally for visual inspection, but data actions need a de
 
 `MarkdownLibraries.html` is bundled locally. Run `npm run build:markdown` after changing the pinned Markdown dependencies.
 
-Source has been pushed to its own Apps Script project. No web app deployment has been created yet.
+Source is pushed to its own Apps Script project. A versioned web app deployment exists; use `npx @google/clasp deployments` to inspect it. Pushing source updates the project HEAD, while the versioned web app must be updated separately to receive new changes.

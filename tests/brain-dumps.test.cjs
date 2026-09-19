@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const crypto = require('node:crypto');
 
-function harness({ model = true, random = 0.99 } = {}) {
+function harness({ model = true, random = 0.99, now = null } = {}) {
   class Sheet {
     constructor(name = 'Sheet1') { this.name = name; this.rows = []; }
     getName() { return this.name; }
@@ -39,8 +39,16 @@ function harness({ model = true, random = 0.99 } = {}) {
   const mail = [];
   const requests = [];
   let seq = 0;
+  const NativeDate = Date;
+  const ContextDate = now ? class extends NativeDate {
+    constructor(...args) { super(...(args.length ? args : [now])); }
+    static now() { return new NativeDate(now).getTime(); }
+    static parse(value) { return NativeDate.parse(value); }
+    static UTC(...args) { return NativeDate.UTC(...args); }
+  } : NativeDate;
   const propertyStore = map => ({ getProperty: key => map.get(key) || '', setProperty: (key, value) => map.set(key, value), deleteProperty: key => map.delete(key), getProperties: () => Object.fromEntries(map) });
   const context = vm.createContext({
+    Date: ContextDate,
     Math: Object.assign(Object.create(Math), { random: () => Array.isArray(random) ? random.shift() : random }),
     SpreadsheetApp: { create: () => book, openById: id => { if (id !== book.id) throw new Error('not found'); return book; } },
     PropertiesService: { getUserProperties: () => propertyStore(user), getScriptProperties: () => propertyStore(script) },
@@ -101,6 +109,7 @@ test('visible responses omit internal entry references', () => {
   const { context } = harness();
   assert.equal(context.stripEntryReferences_('A useful pattern. [brain-20260918T2219-f08746bc0]\n\nWhat next?'), 'A useful pattern.\n\nWhat next?');
   assert.equal(context.stripEntryReferences_('A useful pattern. brain-20260918T2219-f08746bc0'), 'A useful pattern.');
+  assert.equal(context.stripEntryReferences_('A useful pattern. brain-20260918T2219-f08746bc0-80f21d7ad2e64bd0b799cf417fdfd34f'), 'A useful pattern.');
   assert.match(context.buildCaptureSystemPrompt_(), /Never show entry IDs/);
   assert.match(context.askModePrompt_('neutral'), /Never show entry IDs/);
 });
@@ -113,6 +122,21 @@ test('a response can be explicitly marked as saved on its entry row', () => {
   assert.equal(entries.rows[0][15], 'response_saved_at');
   assert.equal(entries.rows[1][15], saved.savedAt);
   assert.match(saved.savedAt, /^\d{4}-\d{2}-\d{2}T/);
+});
+
+test('identical submissions in the same minute get unique IDs and save the later response on the later row', () => {
+  const { context, book } = harness({ now: '2026-09-19T12:34:56.789Z' });
+  const first = context.saveBrainDump('The same thought twice.');
+  const second = context.saveBrainDump('The same thought twice.');
+
+  assert.notEqual(first.entryId, second.entryId);
+  assert.match(first.entryId, /^brain-20260919T1234-[a-f0-9]{10}-[a-z0-9]+$/);
+  assert.match(second.entryId, /^brain-20260919T1234-[a-f0-9]{10}-[a-z0-9]+$/);
+
+  const saved = context.saveResponse(second.entryId);
+  const entries = book.getSheetByName('Entries');
+  assert.equal(entries.rows[1][15], '');
+  assert.equal(entries.rows[2][15], saved.savedAt);
 });
 
 test('each response button applies its mode while preserving the same capture flow', () => {

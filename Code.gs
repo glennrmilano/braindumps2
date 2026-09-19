@@ -617,7 +617,7 @@ function stripEntryReferences_(value) {
   return cleanString_(value)
     .replace(/\s*\[brain-[^\]\r\n]+\]/gi, '')
     .replace(/\s*\(\s*brain-[^)\r\n]+\)/gi, '')
-    .replace(/\s*\bbrain-\d{8}T\d{4}-[a-f0-9]+\b/gi, '')
+    .replace(/\s*\bbrain-\d{8}T\d{4}-[a-f0-9]+(?:-[a-z0-9]+)*\b/gi, '')
     .replace(/[ \t]+\n/g, '\n')
     .trim();
 }
@@ -628,7 +628,8 @@ function cleanEnum_(value, allowed, fallback) {
 }
 
 function buildEntryId_(createdAt, text) {
-  return 'brain-' + createdAt.replace(/[^0-9T]/g, '').slice(0, 13) + '-' + stableId_(text).slice(0, 10);
+  const uniqueSuffix = Utilities.getUuid().replace(/[^a-z0-9]/gi, '').toLowerCase();
+  return 'brain-' + createdAt.replace(/[^0-9T]/g, '').slice(0, 13) + '-' + stableId_(text).slice(0, 10) + '-' + uniqueSuffix;
 }
 
 function stableId_(text) {

@@ -3,9 +3,6 @@
 <head>
   <base target="_top">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Original+Surfer&display=swap" rel="stylesheet">
   <style>
     :root { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color:#232724; background:#f7f5f0; }
     * { box-sizing:border-box; }
@@ -14,62 +11,53 @@
     button,input,textarea { font:inherit; }
     button { cursor:pointer; border:1px solid #dedbd2; background:#fffefa; color:#25312c; border-radius:8px; padding:9px 13px; min-height:40px; font-weight:650; }
     button:disabled { opacity:.55; cursor:not-allowed; }
-    button.active,button.primary { color:white; background:#276e6a; border-color:#276e6a; }
+    button.active,button.primary { color:white; background:#1c7ea9; border-color:#1c7ea9; }
     button.quiet { border:0; background:transparent; color:#276e6a; padding:5px 8px; min-height:30px; }
     a { color:#276e6a; }
     header { display:flex; justify-content:space-between; align-items:center; gap:10px; min-height:48px; padding:6px 18px; background:#fffefa; border-bottom:1px solid #e2ded5; }
     .brandline,.header-links { display:flex; align-items:center; gap:8px; min-width:0; }
     .header-links { flex:none; }
     .header-links button,.header-links a { font-size:12px; min-height:30px; padding:5px 7px; text-decoration:none; white-space:nowrap; }
-    .brand { font-family:"Original Surfer", cursive; font-size:26px; font-weight:400; line-height:1.15; }
-    .sub { font-family:"Original Surfer", cursive; color:#67706b; font-size:13px; white-space:nowrap; }
+    .brand { color:#a9471c; font-size:23px; font-weight:750; line-height:1.15; white-space:nowrap; }
+    .sub { color:#67706b; font-size:13px; white-space:nowrap; }
     .brand-divider { width:1px; height:24px; background:#d8d4ca; }
     main { max-width:1080px; margin:12px auto; padding:0 14px 40px; }
     .panel { background:#fffefa; border:1px solid #e1ddd4; border-radius:10px; box-shadow:0 10px 30px #2327240a; margin-bottom:12px; }
-    .tabs { display:grid; grid-template-columns:repeat(3,1fr); gap:4px; padding:4px; border-bottom:1px solid #e1ddd4; }
-    .tabs button { border:0; background:transparent; }
-    .tabs button.active { background:#e0eeeb; color:#205b58; }
     .inside { padding:14px; }
     h2 { font-size:16px; margin:0 0 12px; }
-    p.hint { color:#68706b; font-size:14px; margin:0 0 12px; }
     textarea { width:100%; min-height:215px; resize:vertical; padding:13px; border:1px solid #d9d5cb; border-radius:8px; background:#fff; line-height:1.5; }
+    #catchInput { height:430px; }
     input[type=text],input[type=date] { width:100%; min-height:40px; padding:8px; border:1px solid #d9d5cb; border-radius:7px; background:#fff; }
     .actions,.row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-    .actions { justify-content:space-between; margin-top:9px; }
+    .actions { justify-content:space-between; align-items:flex-start; margin-top:9px; }
+    .clear-stack { display:flex; flex-direction:column; align-items:center; gap:14px; }
+    .entry-count { --counter-fg:#7d3519; --counter-dot:#a9471c; display:inline-flex; align-items:center; gap:4px; padding:0 3px; color:var(--counter-fg); font-size:10px; font-weight:750; line-height:1; white-space:nowrap; transition:color .2s; }
+    .entry-count::before { content:""; width:5px; height:5px; border-radius:50%; background:var(--counter-dot); }
+    .entry-count.tone-1 { --counter-fg:#155c7a; --counter-dot:#1c7ea9; }
+    .entry-count.tone-2 { --counter-fg:#604093; --counter-dot:#8b5cf6; }
+    .entry-count.tone-3 { --counter-fg:#366b47; --counter-dot:#65a56f; }
+    .entry-count.tone-4 { --counter-fg:#87364e; --counter-dot:#c75b7a; }
+    .entry-count.tone-5 { --counter-fg:#35436c; --counter-dot:#5b6fb2; }
+    .dump-actions { display:flex; gap:10px; margin-left:auto; }
+    .dump-actions button { width:100px; min-height:38px; padding:5px 6px; border-radius:18px; font-size:16px; box-shadow:0 3px 7px #163f522e; }
+    #clearCatch { border-radius:18px; }
     .status { color:#5c6a63; min-height:22px; margin-top:10px; font-size:13px; }
+    .status:empty { display:none; }
     .status.error { color:#923a31; font-weight:650; }
-    .ask-toolbar { display:flex; align-items:center; gap:7px; margin-bottom:9px; }
-    .seg { display:flex; flex:1; gap:4px; min-width:0; }
-    .seg button { flex:1; min-width:0; min-height:36px; padding:6px 5px; font-size:13px; }
-    .ask-shortcuts { display:flex; gap:4px; }
-    .ask-shortcuts button { min-height:36px; padding:6px 9px; font-size:13px; }
-    #historyToggle { display:none; }
-    .stack { display:grid; gap:10px; }
     .item { padding:12px; border:1px solid #e0ddd4; border-radius:8px; background:#fff; }
-    .item.user { background:#f4f8f6; }
-    .item .label { color:#68706b; font-size:12px; font-weight:700; margin-bottom:6px; }
-    .item p { margin:6px 0; }
-    .item input[type=text] { flex:1 1 250px; }
-    .item .row { margin-top:8px; }
-    .layout { display:grid; grid-template-columns:minmax(0,1fr) 245px; gap:12px; }
-    .side { border-left:1px solid #e1ddd4; padding:18px 12px; }
-    .side button { display:block; width:100%; text-align:left; border:0; background:transparent; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-    .side button.active { color:#205b58; background:#e0eeeb; }
-    .messages { max-height:480px; overflow:auto; margin-top:12px; }
+    .response-actions { display:flex; align-items:center; gap:8px; margin-top:12px; }
+    #saveResponse,#clearResponse { min-height:34px; padding:6px 12px; border-radius:18px; }
+    .response-save-status { color:#5c6a63; font-size:12px; }
+    .response-save-status.error { color:#923a31; font-weight:650; }
     .output { line-height:1.55; overflow-wrap:anywhere; }
     .output > :first-child { margin-top:0; }
     .output > :last-child { margin-bottom:0; }
     .output pre { overflow:auto; }
     .output table { display:block; overflow:auto; border-collapse:collapse; }
     .output th,.output td { border:1px solid #ddd; padding:6px; }
-    .todo { display:grid; grid-template-columns:minmax(0,1fr) 145px auto; align-items:center; gap:8px; }
-    .todo.done .todo-text { text-decoration:line-through; color:#89918b; }
-    .todo-text { font-weight:650; }
-    .minor { color:#737d76; font-size:12px; }
-    .badge { display:inline-block; color:#22615d; background:#e0eeeb; border-radius:20px; padding:3px 8px; font-size:12px; }
-    .divider { border-top:1px solid #e1ddd4; margin:16px 0; }
-    @media(max-width:700px) { header{padding:4px 10px;min-height:49px;} .brandline{display:block;} .brand{font-size:20px;} .sub{font-size:10px;line-height:1.1;} .brand-divider{display:none;} .header-links{gap:2px;} #helpButton{font-size:0;min-width:28px;padding:4px;} #helpButton::before{content:"?";font-size:14px;} main{margin:4px auto;padding:0 7px 20px;} .layout{display:block;} .side{display:none;border-left:0;border-top:1px solid #e1ddd4;padding:10px;} #askPane.history-open .side{display:block;} #historyToggle{display:inline-block;} .inside{padding:9px;} .tabs button{min-height:34px;padding:5px;} .todo{grid-template-columns:1fr auto;} .todo input[type=date]{grid-column:1 / -1;} textarea{min-height:130px;max-height:28dvh;font-size:16px;} .messages{max-height:none;} .ask-toolbar{margin-bottom:6px;} .ask-shortcuts button{padding:5px 7px;} }
-    @media(max-width:359px) { .ask-toolbar{flex-wrap:wrap;} .seg{flex-basis:100%;} .ask-shortcuts{margin-left:auto;} }
+    @media(max-width:700px) { header{padding:4px 10px;min-height:40px;} .brandline{gap:5px;} .brand{font-size:18px;} .sub{font-size:11px;} .brand-divider{height:18px;} .header-links{gap:2px;} #helpButton{font-size:0;min-width:28px;padding:4px;} #helpButton::before{content:"?";font-size:14px;} main{margin:4px auto;padding:0 7px 20px;} .inside{padding:9px;} textarea{min-height:130px;max-height:28dvh;font-size:16px;} #catchInput{height:260px;max-height:none;} .dump-actions button{padding:4px;font-size:16px;} }
+    @media(max-width:430px) { header{flex-wrap:wrap;} .header-links{width:100%;justify-content:flex-end;margin-top:-3px;} }
+    @media(max-width:359px) { .dump-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:100%;} .dump-actions button{width:100%;} }
   </style>
 </head>
 <body>
@@ -79,47 +67,19 @@
 </header>
 <main>
   <div class="panel">
-    <nav class="tabs" aria-label="Sections">
-      <button id="catchTab" class="active" type="button">Catch</button>
-      <button id="askTab" type="button">Ask</button>
-      <button id="todosTab" type="button">Todos</button>
-    </nav>
     <section id="catchPane" class="inside">
-      <p class="hint">Catch saves your thought. Ask responds.</p>
-      <textarea id="catchInput" aria-label="Your thought" placeholder="What's on your mind?"></textarea>
-      <div class="actions"><div class="row"><button id="clearCatch" type="button">Clear</button><button id="micButton" type="button" hidden>Dictate</button></div><button id="saveCatch" class="primary" type="button">Catch</button></div>
+      <textarea id="catchInput" aria-label="Your thought or question" placeholder="What's on your mind? Start anywhere. Search your archive or share something new."></textarea>
+      <div class="actions"><div class="row"><div class="clear-stack"><button id="clearCatch" type="button">Clear</button><span id="entryCount" class="entry-count" aria-live="polite" hidden></span></div><button id="micButton" type="button" hidden>Dictate</button></div><div class="dump-actions" aria-label="Response style"><button class="primary" data-dump-mode="neutral" type="button">Neutral</button><button class="primary" data-dump-mode="brainstorm" type="button">Brainstorm</button><button class="primary" data-dump-mode="coach" type="button">Coach</button></div></div>
       <div id="catchStatus" class="status" role="status"></div>
-      <div id="candidates" class="stack" aria-label="Suggested todos"></div>
-    </section>
-    <section id="askPane" hidden>
-      <div class="layout">
-        <div class="inside">
-          <div class="ask-toolbar"><div class="seg" role="group" aria-label="Response mode"><button data-mode="neutral" class="active" type="button">Neutral</button><button data-mode="brainstorm" type="button">Brainstorm</button><button data-mode="coach" type="button">Coach</button></div><div class="ask-shortcuts"><button id="newConversation" type="button" aria-label="New conversation" title="New conversation">+ New</button><button id="historyToggle" type="button" aria-expanded="false">History</button></div></div>
-          <textarea id="askInput" aria-label="Ask BrainDumps" placeholder="Ask about your saved thoughts, explore ideas, or get coaching."></textarea>
-          <div class="actions"><span class="minor">Ask conversations are saved separately from Catches.</span><button id="sendAsk" class="primary" type="button">Ask</button></div>
-          <div id="askStatus" class="status" role="status"></div>
-          <h2 id="conversationTitle" hidden>New conversation</h2>
-          <div id="messages" class="messages stack"></div>
-        </div>
-        <aside class="side"><h2>Conversations</h2><div id="conversations" class="stack"></div></aside>
-      </div>
-    </section>
-    <section id="todosPane" class="inside" hidden>
-      <h2>Todos</h2>
-      <p class="hint">Add one directly, confirm one from Catch, or choose Add to todos in Ask.</p>
-      <div class="row"><input id="todoInput" type="text" maxlength="500" aria-label="New todo" placeholder="Add a todo"><input id="todoDate" type="date" aria-label="Due date"><button id="addTodo" class="primary" type="button">Add</button></div>
-      <div class="divider"></div>
-      <div class="row"><label><input id="reminderToggle" type="checkbox"> Daily email for due and overdue todos</label></div>
-      <div id="todoStatus" class="status" role="status"></div>
-      <div id="todoList" class="stack"></div>
+      <section id="catchResponse" class="item" aria-label="Catch response" hidden><h2>Response</h2><div id="catchResponseText" class="output"></div><div class="response-actions"><button id="saveResponse" type="button">Save</button><button id="clearResponse" type="button">Clear</button><span id="responseSaveStatus" class="response-save-status" role="status"></span></div></section>
     </section>
   </div>
 </main>
-<div id="helpPanel" class="panel" hidden style="position:fixed;top:52px;right:10px;max-width:330px;z-index:3;padding:14px;box-shadow:0 14px 40px #0002"><strong>BrainDumps</strong><p>Catch saves your thought. Ask reads your archive in Neutral, Brainstorm, or Coach. Todos hold only actions you confirm or add.</p><button id="closeHelp" type="button">Close</button></div>
+<div id="helpPanel" class="panel" hidden style="position:fixed;top:52px;right:10px;max-width:330px;z-index:3;padding:14px;box-shadow:0 14px 40px #0002"><strong>BrainDumps</strong><p>Share a thought or ask a question, then choose Neutral, Brainstorm, or Coach for the response style. Every choice saves what you write and uses your archive. Clear actions you mention appear as to-dos in the response.</p><button id="closeHelp" type="button">Close</button></div>
 <?!= includeMarkdownLibraries_(); ?>
 <script>
   const $ = selector => document.querySelector(selector);
-  const state = { tab:'catch', mode:'neutral', conversationId:'', conversations:[], todos:[], busy:false, listening:false };
+  const state = { busy:false, listening:false, currentEntryId:'' };
   function escapeHtml(value) { return String(value == null ? '' : value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
   function markdown(value) { const text=String(value||''); return window.marked && window.DOMPurify ? DOMPurify.sanitize(marked.parse(text,{gfm:true}),{USE_PROFILES:{html:true}}) : escapeHtml(text).replace(/\n/g,'<br>'); }
   function call(name,args,onSuccess,statusEl) {
@@ -127,91 +87,27 @@
     if (!window.google || !google.script || !google.script.run) { state.busy=false; if(statusEl) { statusEl.textContent='Open the deployed Apps Script web app to use this feature.'; statusEl.classList.add('error'); } return; }
     google.script.run.withSuccessHandler(result=>{state.busy=false; if(statusEl) statusEl.textContent=''; onSuccess(result);}).withFailureHandler(error=>{state.busy=false; if(statusEl) {statusEl.textContent=error.message||String(error); statusEl.classList.add('error');}})[name](...args);
   }
-  function setTab(tab) {
-    state.tab=tab;
-    for(const name of ['catch','ask','todos']) { $('#'+name+'Pane').hidden=name!==tab; $('#'+name+'Tab').classList.toggle('active',name===tab); }
-    if(tab==='todos') refreshTodos();
-    if(tab==='ask') refreshConversations();
-  }
-  $('#catchTab').onclick=()=>setTab('catch'); $('#askTab').onclick=()=>setTab('ask'); $('#todosTab').onclick=()=>setTab('todos');
   $('#helpButton').onclick=()=>{$('#helpPanel').hidden=!$('#helpPanel').hidden;}; $('#closeHelp').onclick=()=>{$('#helpPanel').hidden=true;};
-  $('#historyToggle').onclick=()=>{const open=$('#askPane').classList.toggle('history-open'); $('#historyToggle').setAttribute('aria-expanded',String(open));};
   $('#clearCatch').onclick=()=>{$('#catchInput').value=''; $('#catchInput').focus();};
-  $('#saveCatch').onclick=()=>{
+  function renderEntryCount(value) {
+    const count=Math.max(0,Number(value)||0), badge=$('#entryCount');
+    badge.textContent=count+' '+(count===1?'entry':'entries');
+    badge.className='entry-count tone-'+(Math.floor(count/10)%6);
+    badge.hidden=false;
+  }
+  function submitDump(mode) {
     const text=$('#catchInput').value.trim(); if(text.length<3||state.busy||state.listening) return;
-    call('saveBrainDump',[text],result=>{ $('#catchInput').value=''; $('#catchStatus').textContent=result.warning ? result.warning : 'Saved to your BrainDumps archive.'; renderCandidates(result); },$('#catchStatus'));
+    call('saveBrainDump',[text,mode],result=>{ $('#catchInput').value=''; $('#catchInput').blur(); state.currentEntryId=result.entryId; renderEntryCount(result.entryCount); $('#catchStatus').textContent=result.warning ? result.warning : 'Saved · '+result.mode.charAt(0).toUpperCase()+result.mode.slice(1); $('#catchResponseText').innerHTML=markdown(result.responseMarkdown); $('#saveResponse').disabled=false; $('#saveResponse').textContent='Save'; $('#responseSaveStatus').textContent=''; $('#responseSaveStatus').classList.remove('error'); $('#catchResponse').hidden=false; },$('#catchStatus'));
+  }
+  document.querySelectorAll('[data-dump-mode]').forEach(button=>button.onclick=()=>submitDump(button.dataset.dumpMode));
+  $('#saveResponse').onclick=()=>{
+    if(!state.currentEntryId||state.busy) return;
+    call('saveResponse',[state.currentEntryId],()=>{ $('#saveResponse').disabled=true; $('#saveResponse').textContent='Saved'; $('#responseSaveStatus').textContent='Saved to your sheet.'; },$('#responseSaveStatus'));
   };
-  function renderCandidates(result) {
-    const box=$('#candidates'); box.replaceChildren();
-    const candidates=result.taskCandidates||[]; if(!candidates.length) return;
-    const title=document.createElement('h2'); title.textContent='Possible todos — confirm what you want to keep'; box.append(title);
-    candidates.forEach(text=>{
-      const card=document.createElement('div'); card.className='item';
-      const input=document.createElement('input'); input.type='text'; input.maxLength=500; input.value=text; input.setAttribute('aria-label','Edit suggested todo');
-      const add=document.createElement('button'); add.textContent='Add to todos'; add.onclick=()=>call('addTodo',[input.value,'','catch',result.entryId],()=>{card.remove(); $('#catchStatus').textContent='Todo added.';},$('#catchStatus'));
-      const dismiss=document.createElement('button'); dismiss.textContent='Dismiss'; dismiss.onclick=()=>card.remove();
-      const row=document.createElement('div'); row.className='row'; row.append(input,add,dismiss); card.append(row); box.append(card);
-    });
-  }
-  document.querySelectorAll('[data-mode]').forEach(button=>button.onclick=()=>{state.mode=button.dataset.mode; document.querySelectorAll('[data-mode]').forEach(x=>x.classList.toggle('active',x===button));});
-  $('#newConversation').onclick=()=>{state.conversationId=''; state.mode='neutral'; $('[data-mode="neutral"]').click(); $('#conversationTitle').textContent='New conversation'; $('#conversationTitle').hidden=true; $('#messages').replaceChildren(); $('#askInput').value=''; $('#askPane').classList.remove('history-open'); $('#historyToggle').setAttribute('aria-expanded','false'); renderConversations();};
-  $('#sendAsk').onclick=()=>{
-    const text=$('#askInput').value.trim(); if(text.length<3||state.busy) return;
-    const previous=state.conversationId;
-    call('sendAskMessage',[previous,state.mode,text],result=>{
-      state.conversationId=result.conversationId; $('#askInput').value='';
-      appendMessage({role:'user',mode:state.mode,content:text});
-      appendMessage({role:'assistant',mode:state.mode,content:result.answerMarkdown,suggestions:result.suggestions,message_id:result.messageId});
-      if(!previous) {$('#conversationTitle').textContent=text.slice(0,80); $('#conversationTitle').hidden=false;}
-      refreshConversations();
-    },$('#askStatus'));
+  $('#clearResponse').onclick=()=>{
+    if(state.busy) return;
+    state.currentEntryId=''; $('#catchResponseText').textContent=''; $('#responseSaveStatus').textContent=''; $('#catchResponse').hidden=true; $('#catchStatus').textContent=''; $('#catchInput').focus();
   };
-  function appendMessage(message) {
-    const card=document.createElement('div'); card.className='item '+(message.role==='user'?'user':'');
-    const label=document.createElement('div'); label.className='label'; label.textContent=(message.role==='user'?'You':'BrainDumps')+' · '+(message.mode||'neutral');
-    const content=document.createElement('div'); content.className='output'; content.innerHTML=message.role==='assistant'?markdown(message.content):escapeHtml(message.content).replace(/\n/g,'<br>');
-    card.append(label,content);
-    (message.suggestions||[]).forEach((suggestion,index)=>{
-      const row=document.createElement('div'); row.className='row';
-      const text=document.createElement('span'); text.textContent=suggestion;
-      const add=document.createElement('button'); add.textContent='Add to todos';
-      add.onclick=()=>call('addSuggestedTodo',[state.conversationId,message.message_id,index],()=>{add.textContent='Added'; add.disabled=true; $('#askStatus').textContent='Todo added.';},$('#askStatus'));
-      row.append(text,add); card.append(row);
-    });
-    $('#messages').append(card); $('#messages').scrollTop=$('#messages').scrollHeight;
-  }
-  function refreshConversations() { call('getConversations',[],rows=>{state.conversations=rows; renderConversations();},$('#askStatus')); }
-  function renderConversations() {
-    const box=$('#conversations'); box.replaceChildren();
-    state.conversations.forEach(item=>{const button=document.createElement('button'); button.textContent=item.title||'Conversation'; button.classList.toggle('active',item.conversation_id===state.conversationId); button.onclick=()=>openConversation(item.conversation_id); box.append(button);});
-  }
-  function openConversation(id) {
-    call('getConversation',[id],result=>{state.conversationId=id; $('#conversationTitle').textContent=result.conversation.title; $('#conversationTitle').hidden=false; $('#messages').replaceChildren(); result.messages.forEach(appendMessage); $('#askPane').classList.remove('history-open'); $('#historyToggle').setAttribute('aria-expanded','false'); renderConversations();},$('#askStatus'));
-  }
-  $('#addTodo').onclick=()=>{
-    const text=$('#todoInput').value.trim(); if(text.length<3||state.busy) return;
-    call('addTodo',[text,$('#todoDate').value,'manual',''],()=>{$('#todoInput').value=''; $('#todoDate').value=''; refreshTodos();},$('#todoStatus'));
-  };
-  function refreshTodos() { call('getTodos',[],rows=>{state.todos=rows; renderTodos();},$('#todoStatus')); }
-  function renderTodos() {
-    const box=$('#todoList'); box.replaceChildren();
-    const rows=state.todos.slice().sort((a,b)=>(a.status==='done')-(b.status==='done')||(a.due_date||'9999').localeCompare(b.due_date||'9999'));
-    if(!rows.length) {box.textContent='No todos yet.'; return;}
-    rows.forEach(todo=>{
-      const card=document.createElement('div'); card.className='item todo '+(todo.status==='done'?'done':'');
-      const description=document.createElement('div');
-      const text=document.createElement('div'); text.className='todo-text'; text.textContent=todo.text;
-      const source=document.createElement('div'); source.className='minor'; source.textContent=todo.source_type==='manual'?'Added directly':todo.source_type==='catch'?'From Catch':'From Ask';
-      description.append(text,source);
-      if(todo.source_type==='catch' && todo.source_id) { const view=document.createElement('button'); view.className='quiet'; view.textContent='View Catch'; view.onclick=()=>call('getEntry',[todo.source_id],entry=>{const detail=document.createElement('div'); detail.className='minor'; detail.textContent=entry.text; description.append(detail); view.remove();},$('#todoStatus')); description.append(view); }
-      if(todo.source_type==='ask' && todo.source_id) { const link=document.createElement('button'); link.className='quiet'; link.textContent='Open conversation'; link.onclick=()=>{setTab('ask'); openConversation(todo.source_id.split('|')[0]);}; description.append(link); }
-      const date=document.createElement('input'); date.type='date'; date.value=todo.due_date||''; date.setAttribute('aria-label','Due date for '+todo.text); date.onchange=()=>changeTodo(todo,{due_date:date.value});
-      const toggle=document.createElement('button'); toggle.textContent=todo.status==='done'?'Reopen':'Done'; toggle.onclick=()=>changeTodo(todo,{status:todo.status==='done'?'open':'done'});
-      card.append(description,date,toggle); box.append(card);
-    });
-  }
-  function changeTodo(todo,changes) { call('updateTodo',[todo.todo_id,todo.updated_at,changes],()=>refreshTodos(),$('#todoStatus')); }
-  $('#reminderToggle').onchange=()=>{const enabled=$('#reminderToggle').checked; call('setDailyReminder',[enabled],result=>{$('#reminderToggle').checked=result.enabled; $('#todoStatus').textContent=result.enabled?'Daily reminders on.':'Daily reminders off.';},$('#todoStatus'));};
   const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(SpeechRecognition) {
     const mic=$('#micButton'); mic.hidden=false;
@@ -226,9 +122,8 @@
   }
   call('getAppConfig',[],config=>{
     $('#sheetLink').href=config.spreadsheetUrl; $('#sheetLink').hidden=false;
-    $('#reminderToggle').checked=!!config.reminderEnabled;
-    state.todos=config.todos||[]; state.conversations=config.conversations||[]; renderTodos(); renderConversations();
-    if(!config.openAIConfigured) {$('#catchStatus').textContent='OPENAI_API_KEY is not set. Catch will save raw thoughts; Ask and todo suggestions need the key.'; $('#catchStatus').classList.add('error');}
+    renderEntryCount(config.entryCount);
+    if(!config.openAIConfigured) {$('#catchStatus').textContent='OPENAI_API_KEY is not set. Thoughts will still save, but responses need the key.'; $('#catchStatus').classList.add('error');}
   },$('#catchStatus'));
 </script>
 </body>

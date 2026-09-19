@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const crypto = require('node:crypto');
 
-function harness({ model = true } = {}) {
+function harness({ model = true, random = 0.99, now = null } = {}) {
   class Sheet {
     constructor(name = 'Sheet1') { this.name = name; this.rows = []; }
     getName() { return this.name; }
@@ -37,9 +37,19 @@ function harness({ model = true } = {}) {
   const script = new Map(model ? [['OPENAI_API_KEY', 'test-key']] : []);
   const triggers = [];
   const mail = [];
+  const requests = [];
   let seq = 0;
+  const NativeDate = Date;
+  const ContextDate = now ? class extends NativeDate {
+    constructor(...args) { super(...(args.length ? args : [now])); }
+    static now() { return new NativeDate(now).getTime(); }
+    static parse(value) { return NativeDate.parse(value); }
+    static UTC(...args) { return NativeDate.UTC(...args); }
+  } : NativeDate;
   const propertyStore = map => ({ getProperty: key => map.get(key) || '', setProperty: (key, value) => map.set(key, value), deleteProperty: key => map.delete(key), getProperties: () => Object.fromEntries(map) });
   const context = vm.createContext({
+    Date: ContextDate,
+    Math: Object.assign(Object.create(Math), { random: () => Array.isArray(random) ? random.shift() : random }),
     SpreadsheetApp: { create: () => book, openById: id => { if (id !== book.id) throw new Error('not found'); return book; } },
     PropertiesService: { getUserProperties: () => propertyStore(user), getScriptProperties: () => propertyStore(script) },
     LockService: { getUserLock: () => ({ waitLock() {}, releaseLock() {} }) },
@@ -49,40 +59,130 @@ function harness({ model = true } = {}) {
     Utilities: { getUuid: () => String(++seq), formatDate: date => date.toISOString().slice(0, 10), DigestAlgorithm: { SHA_256: 'sha256' }, computeDigest: (_, text) => Array.from(crypto.createHash('sha256').update(text).digest()) },
     UrlFetchApp: { fetch: (_, options) => {
       const payload = JSON.parse(options.payload);
+      requests.push(payload);
       const name = payload.response_format.json_schema.name;
+      const question = name === 'brain_capture' && payload.messages[1].content.includes('What did I say?');
       const output = name === 'brain_capture' ? {
-        entry: { type: 'mixed', title: 'Call Sam', gist: 'Call Sam', topics: [], entities: [], active_threads: [], stated_goals: [], facts_added: [], contradicts: [], retrieval_keywords: [], extracted_markdown: 'Call Sam' },
+        entry: { type: question ? 'question' : 'mixed', title: 'Call Sam', gist: 'Call Sam', topics: [], entities: [], active_threads: [], stated_goals: [], facts_added: [], contradicts: [], retrieval_keywords: [], extracted_markdown: 'Call Sam' },
         state: { current_summary: 'Call Sam', goals: [], open_threads: [], watch_list: [] },
-        response_markdown: '', relevant_entry_ids: [], task_candidates: ['Call Sam']
+        response_markdown: question ? 'You said you planned to call Sam.' : payload.messages[1].content.includes('I will call Sam') ? 'You plan to speak with Sam tomorrow.\n\n### To-dos\n- Call Sam' : 'You shared a thought worth keeping.', relevant_entry_ids: []
       } : name === 'brain_dump_ask' ? {
-        answer_markdown: 'A grounded answer', relevant_entry_ids: [], suggested_todos: ['Review the notes']
+        answer_markdown: payload.messages[1].content.includes('What did I say?') ? 'You said you planned to call Sam.' : 'A grounded answer', relevant_entry_ids: []
       } : { summary_markdown: 'Summary', relevant_entry_ids: [] };
       return { getResponseCode: () => 200, getContentText: () => JSON.stringify({ choices: [{ message: { content: JSON.stringify(output) } }] }) };
     } },
   });
   vm.runInContext(fs.readFileSync('Code.gs', 'utf8'), context);
   vm.runInContext(fs.readFileSync('BrainDump.gs', 'utf8'), context);
-  return { context, book, mail, triggers, user };
+  return { context, book, mail, triggers, user, requests };
 }
 
-test('Catch saves original text and requires confirmation before a candidate becomes a todo', () => {
+test('Catch saves original text and returns an organized response with inline to-dos', () => {
   const { context, book } = harness();
   assert.equal(context.getAppConfig().entryCount, 0);
   const result = context.saveBrainDump('I will call Sam tomorrow.');
-  assert.deepEqual(Array.from(result.taskCandidates), ['Call Sam']);
-  assert.equal(context.getTodos().length, 0);
+  assert.equal(result.entryCount, 1);
+  assert.equal(context.getAppConfig().entryCount, 1);
+  assert.match(result.responseMarkdown, /You plan to speak with Sam tomorrow/);
+  assert.match(result.responseMarkdown, /### To-dos\n- Call Sam/);
   assert.equal(book.getSheetByName('Entries').rows[1][12], 'I will call Sam tomorrow.');
-  assert.equal(book.getSheetByName('Entries').rows[1][14], '');
-  const todo = context.addTodo('Call Sam', '', 'catch', result.entryId);
-  assert.equal(todo.source_id, result.entryId);
-  assert.equal(context.getTodos().length, 1);
+  assert.equal(book.getSheetByName('Entries').rows[1][14], result.responseMarkdown);
+  assert.equal(book.getSheetByName('Todos'), null);
+  assert.match(context.buildCaptureSystemPrompt_(), /To-dos/);
 });
 
 test('Catch still saves raw thoughts if AI extraction is unavailable', () => {
   const { context, book } = harness({ model: false });
   const result = context.saveBrainDump('A thought worth keeping.');
   assert.match(result.warning, /Saved the original thought/);
+  assert.match(result.responseMarkdown, /organized response is unavailable/);
   assert.equal(book.getSheetByName('Entries').rows[1][12], 'A thought worth keeping.');
+});
+
+test('Catch response omits To-dos for a thought without an explicit action', () => {
+  const { context } = harness();
+  const result = context.saveBrainDump('A thought worth keeping.');
+  assert.doesNotMatch(result.responseMarkdown, /To-dos/);
+});
+
+test('visible responses omit internal entry references', () => {
+  const { context } = harness();
+  assert.equal(context.stripEntryReferences_('A useful pattern. [brain-20260918T2219-f08746bc0]\n\nWhat next?'), 'A useful pattern.\n\nWhat next?');
+  assert.equal(context.stripEntryReferences_('A useful pattern. brain-20260918T2219-f08746bc0'), 'A useful pattern.');
+  assert.equal(context.stripEntryReferences_('A useful pattern. brain-20260918T2219-f08746bc0-80f21d7ad2e64bd0b799cf417fdfd34f'), 'A useful pattern.');
+  assert.match(context.buildCaptureSystemPrompt_(), /Never show entry IDs/);
+  assert.match(context.askModePrompt_('neutral'), /Never show entry IDs/);
+});
+
+test('a response can be explicitly marked as saved on its entry row', () => {
+  const { context, book } = harness();
+  const result = context.saveBrainDump('A thought worth keeping.');
+  const saved = context.saveResponse(result.entryId);
+  const entries = book.getSheetByName('Entries');
+  assert.equal(entries.rows[0][15], 'response_saved_at');
+  assert.equal(entries.rows[1][15], saved.savedAt);
+  assert.match(saved.savedAt, /^\d{4}-\d{2}-\d{2}T/);
+});
+
+test('identical submissions in the same minute get unique IDs and save the later response on the later row', () => {
+  const { context, book } = harness({ now: '2026-09-19T12:34:56.789Z' });
+  const first = context.saveBrainDump('The same thought twice.');
+  const second = context.saveBrainDump('The same thought twice.');
+
+  assert.notEqual(first.entryId, second.entryId);
+  assert.match(first.entryId, /^brain-20260919T1234-[a-f0-9]{10}-[a-z0-9]+$/);
+  assert.match(second.entryId, /^brain-20260919T1234-[a-f0-9]{10}-[a-z0-9]+$/);
+
+  const saved = context.saveResponse(second.entryId);
+  const entries = book.getSheetByName('Entries');
+  assert.equal(entries.rows[1][15], '');
+  assert.equal(entries.rows[2][15], saved.savedAt);
+});
+
+test('each response button applies its mode while preserving the same capture flow', () => {
+  for (const [mode, phrase] of [
+    ['neutral', 'Respond directly and factually'],
+    ['brainstorm', 'offer a few distinct possibilities'],
+    ['coach', 'offer candid but constructive pushback']
+  ]) {
+    const { context, requests } = harness();
+    const result = context.saveBrainDump('A thought worth keeping.', mode);
+    assert.equal(result.mode, mode);
+    assert.match(requests[0].messages[0].content, new RegExp(phrase));
+  }
+});
+
+test('follow-up choice is made independently for every Dump at a 60% threshold', () => {
+  const turns = harness({ random: [0.59, 0.6] });
+  turns.context.saveBrainDump('A thought worth keeping.');
+  turns.context.saveBrainDump('Another thought worth keeping.');
+  assert.match(turns.requests[0].messages[0].content, /End the response with one concise, open-ended follow-up question/);
+  assert.match(turns.requests[1].messages[0].content, /Do not add a follow-up question/);
+  const question = harness({ random: 0.59 });
+  question.context.saveBrainDump('What did I say?');
+  assert.match(question.requests.at(-1).messages[0].content, /End the response with one concise, open-ended follow-up question/);
+});
+
+test('a reply can use the previous exchange without treating the AI response as a fact', () => {
+  const { context, requests } = harness();
+  context.saveBrainDump('I will call Sam tomorrow.');
+  context.saveBrainDump('That part makes me nervous.');
+  const second = requests.filter(request => request.response_format.json_schema.name === 'brain_capture')[1];
+  assert.match(second.messages[1].content, /You plan to speak with Sam tomorrow/);
+  assert.match(second.messages[0].content, /Earlier AI replies are not facts/);
+});
+
+test('a question reviews the archive without rewriting saved state', () => {
+  const { context, book, requests } = harness();
+  context.saveBrainDump('I will call Sam tomorrow.');
+  const before = context.getAppConfig().stateMarkdown;
+  const result = context.saveBrainDump('What did I say?');
+  assert.match(result.responseMarkdown, /planned to call Sam/);
+  assert.equal(book.getSheetByName('Entries').rows[2][2], 'question');
+  assert.equal(context.getAppConfig().stateMarkdown, before);
+  assert.equal(requests.at(-1).response_format.json_schema.name, 'brain_dump_ask');
+  assert.match(requests.at(-1).messages[1].content, /I will call Sam tomorrow/);
+  assert.match(requests.at(-1).messages[0].content, /Do not add a follow-up question/);
 });
 
 test('an inaccessible existing archive is preserved instead of replaced', () => {
@@ -96,51 +196,39 @@ test('formula-like thoughts stay text in Sheets and read back unchanged', () => 
   const { context, book } = harness();
   const result = context.saveBrainDump('=SUM(1,2) is what the note says');
   assert.match(book.getSheetByName('Entries').rows[1][12], /^'/);
-  assert.equal(context.getEntry(result.entryId).text, '=SUM(1,2) is what the note says');
+  assert.equal(context.readAskHistory_(book.getSheetByName('Entries'))[0].raw_entry, '=SUM(1,2) is what the note says');
 });
 
-test('Ask persists switched modes, keeps archive unchanged, and requires explicit suggestion addition', () => {
+test('Ask persists switched modes and keeps archive unchanged', () => {
   const { context } = harness();
   context.saveBrainDump('I will call Sam tomorrow.');
   const neutral = context.sendAskMessage('', 'neutral', 'What did I say?');
-  assert.equal(neutral.suggestions.length, 0);
   const coach = context.sendAskMessage(neutral.conversationId, 'coach', 'What should I consider?');
-  assert.deepEqual(Array.from(coach.suggestions), ['Review the notes']);
   const conversation = context.getConversation(neutral.conversationId);
   assert.equal(conversation.messages.length, 4);
   assert.equal(conversation.messages[0].mode, 'neutral');
   assert.equal(conversation.messages[2].mode, 'coach');
   assert.equal(context.getAppConfig().entryCount, 1);
-  assert.equal(context.getTodos().length, 0);
-  const first = context.addSuggestedTodo(neutral.conversationId, coach.messageId, 0);
-  const second = context.addSuggestedTodo(neutral.conversationId, coach.messageId, 0);
-  assert.equal(first.todo_id, second.todo_id);
-  assert.equal(context.getTodos().length, 1);
-  assert.throws(() => context.addSuggestedTodo(neutral.conversationId, coach.messageId, 9), /Suggestion not found/);
+  assert.equal(context.getConversations().length, 1);
 });
 
-test('Todos require current version and reminders include only open due work after opt-in', () => {
-  const { context, mail } = harness({ model: false });
-  const today = new Date().toISOString().slice(0, 10);
-  const due = context.addTodo('Finish the draft', today, 'manual', '');
-  const done = context.addTodo('Already finished', today, 'manual', '');
-  context.updateTodo(done.todo_id, done.updated_at, { status: 'done' });
-  assert.throws(() => context.updateTodo(done.todo_id, 'stale', { status: 'open' }), /changed elsewhere/);
+test('legacy todo reminder triggers cannot send email', () => {
+  const { context, mail, user } = harness({ model: false });
+  user.set('BRAIN_DUMP_REMINDER_ENABLED', 'true');
   context.sendDailyTodoReminder();
   assert.equal(mail.length, 0);
-  context.setDailyReminder(true);
-  context.sendDailyTodoReminder();
-  context.sendDailyTodoReminder();
-  assert.equal(mail.length, 1);
-  assert.match(mail[0][2], /Finish the draft/);
-  assert.doesNotMatch(mail[0][2], /Already finished/);
-  context.setDailyReminder(false);
-  assert.equal(context.getAppConfig().reminderEnabled, false);
 });
 
-test('UI uses BrainDumps branding and three Ask modes', () => {
+test('UI has one input and three response buttons without navigation tabs', () => {
   const html = fs.readFileSync('Index.html', 'utf8');
   assert.match(html, /class="brand">BrainDumps<\/div>.*class="sub">Free your mind, one dump at a time\./);
-  assert.match(html, /family=Original\+Surfer/);
-  for (const mode of ['neutral', 'brainstorm', 'coach']) assert.match(html, new RegExp('data-mode="' + mode + '"'));
+  assert.match(html, /id="catchResponse"/);
+  assert.match(html, /id="entryCount"/);
+  assert.match(html, /id="saveResponse"[^>]*>Save<\/button>/);
+  assert.match(html, /id="clearResponse"[^>]*>Clear<\/button>/);
+  assert.match(html, /Math\.floor\(count\/10\)%6/);
+  assert.equal((html.match(/<textarea /g) || []).length, 1);
+  for (const mode of ['neutral', 'brainstorm', 'coach']) assert.match(html, new RegExp('data-dump-mode="' + mode + '"'));
+  assert.doesNotMatch(html, /id="saveCatch"[^>]*>Dump<\/button>/);
+  assert.doesNotMatch(html, /id="catchTab"|id="askTab"|Catch saves your thought|data-mode=/);
 });

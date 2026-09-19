@@ -45,6 +45,10 @@
     .status:empty { display:none; }
     .status.error { color:#923a31; font-weight:650; }
     .item { padding:12px; border:1px solid #e0ddd4; border-radius:8px; background:#fff; }
+    .response-actions { display:flex; align-items:center; gap:8px; margin-top:12px; }
+    #saveResponse { min-height:34px; padding:6px 12px; border-radius:18px; }
+    .response-save-status { color:#5c6a63; font-size:12px; }
+    .response-save-status.error { color:#923a31; font-weight:650; }
     .output { line-height:1.55; overflow-wrap:anywhere; }
     .output > :first-child { margin-top:0; }
     .output > :last-child { margin-bottom:0; }
@@ -67,7 +71,7 @@
       <textarea id="catchInput" aria-label="Your thought or question" placeholder="What's on your mind? Start anywhere. Search your archive or share something new."></textarea>
       <div class="actions"><div class="row"><div class="clear-stack"><button id="clearCatch" type="button">Clear</button><span id="entryCount" class="entry-count" aria-live="polite" hidden></span></div><button id="micButton" type="button" hidden>Dictate</button></div><div class="dump-actions" aria-label="Response style"><button class="primary" data-dump-mode="neutral" type="button">Neutral</button><button class="primary" data-dump-mode="brainstorm" type="button">Brainstorm</button><button class="primary" data-dump-mode="coach" type="button">Coach</button></div></div>
       <div id="catchStatus" class="status" role="status"></div>
-      <section id="catchResponse" class="item" aria-label="Catch response" hidden><h2>Response</h2><div id="catchResponseText" class="output"></div></section>
+      <section id="catchResponse" class="item" aria-label="Catch response" hidden><h2>Response</h2><div id="catchResponseText" class="output"></div><div class="response-actions"><button id="saveResponse" type="button">Save response</button><span id="responseSaveStatus" class="response-save-status" role="status"></span></div></section>
     </section>
   </div>
 </main>
@@ -75,7 +79,7 @@
 <?!= includeMarkdownLibraries_(); ?>
 <script>
   const $ = selector => document.querySelector(selector);
-  const state = { busy:false, listening:false };
+  const state = { busy:false, listening:false, currentEntryId:'' };
   function escapeHtml(value) { return String(value == null ? '' : value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
   function markdown(value) { const text=String(value||''); return window.marked && window.DOMPurify ? DOMPurify.sanitize(marked.parse(text,{gfm:true}),{USE_PROFILES:{html:true}}) : escapeHtml(text).replace(/\n/g,'<br>'); }
   function call(name,args,onSuccess,statusEl) {
@@ -93,9 +97,13 @@
   }
   function submitDump(mode) {
     const text=$('#catchInput').value.trim(); if(text.length<3||state.busy||state.listening) return;
-    call('saveBrainDump',[text,mode],result=>{ $('#catchInput').value=''; $('#catchInput').blur(); renderEntryCount(result.entryCount); $('#catchStatus').textContent=result.warning ? result.warning : 'Saved · '+result.mode.charAt(0).toUpperCase()+result.mode.slice(1); $('#catchResponseText').innerHTML=markdown(result.responseMarkdown); $('#catchResponse').hidden=false; },$('#catchStatus'));
+    call('saveBrainDump',[text,mode],result=>{ $('#catchInput').value=''; $('#catchInput').blur(); state.currentEntryId=result.entryId; renderEntryCount(result.entryCount); $('#catchStatus').textContent=result.warning ? result.warning : 'Saved · '+result.mode.charAt(0).toUpperCase()+result.mode.slice(1); $('#catchResponseText').innerHTML=markdown(result.responseMarkdown); $('#saveResponse').disabled=false; $('#saveResponse').textContent='Save response'; $('#responseSaveStatus').textContent=''; $('#responseSaveStatus').classList.remove('error'); $('#catchResponse').hidden=false; },$('#catchStatus'));
   }
   document.querySelectorAll('[data-dump-mode]').forEach(button=>button.onclick=()=>submitDump(button.dataset.dumpMode));
+  $('#saveResponse').onclick=()=>{
+    if(!state.currentEntryId||state.busy) return;
+    call('saveResponse',[state.currentEntryId],()=>{ $('#saveResponse').disabled=true; $('#saveResponse').textContent='Saved'; $('#responseSaveStatus').textContent='Saved to your sheet.'; },$('#responseSaveStatus'));
+  };
   const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(SpeechRecognition) {
     const mic=$('#micButton'); mic.hidden=false;

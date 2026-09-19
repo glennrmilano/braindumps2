@@ -97,6 +97,16 @@ test('Catch response omits To-dos for a thought without an explicit action', () 
   assert.doesNotMatch(result.responseMarkdown, /To-dos/);
 });
 
+test('a response can be explicitly marked as saved on its entry row', () => {
+  const { context, book } = harness();
+  const result = context.saveBrainDump('A thought worth keeping.');
+  const saved = context.saveResponse(result.entryId);
+  const entries = book.getSheetByName('Entries');
+  assert.equal(entries.rows[0][15], 'response_saved_at');
+  assert.equal(entries.rows[1][15], saved.savedAt);
+  assert.match(saved.savedAt, /^\d{4}-\d{2}-\d{2}T/);
+});
+
 test('each response button applies its mode while preserving the same capture flow', () => {
   for (const [mode, phrase] of [
     ['neutral', 'Respond directly and factually'],
@@ -182,6 +192,7 @@ test('UI has one input and three response buttons without navigation tabs', () =
   assert.match(html, /class="brand">BrainDumps<\/div>.*class="sub">Free your mind, one dump at a time\./);
   assert.match(html, /id="catchResponse"/);
   assert.match(html, /id="entryCount"/);
+  assert.match(html, /id="saveResponse"[^>]*>Save response<\/button>/);
   assert.match(html, /Math\.floor\(count\/10\)%6/);
   assert.equal((html.match(/<textarea /g) || []).length, 1);
   for (const mode of ['neutral', 'brainstorm', 'coach']) assert.match(html, new RegExp('data-dump-mode="' + mode + '"'));

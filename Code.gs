@@ -21,7 +21,8 @@ const ENTRY_HEADERS = [
   'retrieval_keywords',
   'raw_entry',
   'extracted_markdown',
-  'model_response'
+  'model_response',
+  'response_saved_at'
 ];
 
 const INDEX_HEADERS = [
@@ -127,6 +128,35 @@ function saveBrainDump(rawEntry, responseMode) {
       recentEntries: readRecentIndex_(store.index, 8),
       relevantEntryIds: result.relevant_entry_ids || []
     };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function saveResponse(entryId) {
+  const id = String(entryId || '').trim();
+  if (!id) throw new Error('There is no response to save.');
+
+  const lock = LockService.getUserLock();
+  lock.waitLock(30000);
+  try {
+    const store = getOrCreateBrainStore_();
+    const count = Math.max(0, store.entries.getLastRow() - 1);
+    if (!count) throw new Error('The response could not be found.');
+    const ids = store.entries.getRange(2, 1, count, 1).getValues();
+    let rowNumber = 0;
+    for (let i = 0; i < ids.length; i += 1) {
+      if (unescapeSheetText_(ids[i][0]) === id) {
+        rowNumber = i + 2;
+        break;
+      }
+    }
+    if (!rowNumber) throw new Error('The response could not be found.');
+
+    const savedAt = new Date().toISOString();
+    const column = ENTRY_HEADERS.indexOf('response_saved_at') + 1;
+    store.entries.getRange(rowNumber, column).setValue(savedAt);
+    return { entryId: id, savedAt: savedAt };
   } finally {
     lock.releaseLock();
   }
@@ -426,7 +456,8 @@ function appendEntry_(sheet, entryId, createdAt, rawEntry, entry, responseMarkdo
     entry.retrieval_keywords.join(', '),
     rawEntry,
     entry.extracted_markdown,
-    responseMarkdown
+    responseMarkdown,
+    ''
   ]));
 }
 

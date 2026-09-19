@@ -108,7 +108,7 @@ function saveBrainDump(rawEntry, responseMode) {
 
     const entryId = buildEntryId_(createdAt, text);
     const entry = normalizeCaptureEntry_(result.entry || {}, text);
-    const generatedResponse = String(result.response_markdown || '').trim();
+    const generatedResponse = stripEntryReferences_(result.response_markdown);
     const responseMarkdown = generatedResponse || 'Saved your thought. An organized response is unavailable right now.';
     if (!generatedResponse && !result.extraction_warning) {
       result.extraction_warning = 'Saved the original thought, but the AI response was empty.';
@@ -613,6 +613,15 @@ function cleanString_(value) {
   return String(value == null ? '' : value).trim();
 }
 
+function stripEntryReferences_(value) {
+  return cleanString_(value)
+    .replace(/\s*\[brain-[^\]\r\n]+\]/gi, '')
+    .replace(/\s*\(\s*brain-[^)\r\n]+\)/gi, '')
+    .replace(/\s*\bbrain-\d{8}T\d{4}-[a-f0-9]+\b/gi, '')
+    .replace(/[ \t]+\n/g, '\n')
+    .trim();
+}
+
 function cleanEnum_(value, allowed, fallback) {
   const text = cleanString_(value);
   return allowed.indexOf(text) >= 0 ? text : fallback;
@@ -654,6 +663,7 @@ function buildCaptureSystemPrompt_(askFollowUp, mode) {
     'For a thought, write response_markdown as a brief organized acknowledgment. Show that you heard the specific people, decisions, concerns, or open threads mentioned. Do not just say it was saved.',
     'For a question, set entry.type to question and answer it directly from the supplied archive and current state. A question is not a new fact, goal, or decision. Keep facts_added, stated_goals, and contradictions empty; preserve current state unchanged. Be candid when the supplied evidence is thin.',
     'Stay factual and personable. Do not invent details, diagnose, or claim a plan was completed.',
+    'Never show entry IDs, source IDs, or bracketed reference citations in response_markdown. Put supporting IDs only in relevant_entry_ids.',
     'When the user explicitly states actions they intend to take, add a simple "To-dos" heading and a short bullet list within response_markdown. Do not infer tasks from vague concerns, desires, or completed actions. Do not assume an owner or due date.',
     'The To-dos list is part of the acknowledgment only. Do not claim that tasks were created, tracked, or scheduled.',
     'Prefer concrete facts, goals, decisions, contradictions, recurring patterns, and unresolved threads.',

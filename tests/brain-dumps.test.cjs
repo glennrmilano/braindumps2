@@ -97,6 +97,14 @@ test('Catch response omits To-dos for a thought without an explicit action', () 
   assert.doesNotMatch(result.responseMarkdown, /To-dos/);
 });
 
+test('visible responses omit internal entry references', () => {
+  const { context } = harness();
+  assert.equal(context.stripEntryReferences_('A useful pattern. [brain-20260918T2219-f08746bc0]\n\nWhat next?'), 'A useful pattern.\n\nWhat next?');
+  assert.equal(context.stripEntryReferences_('A useful pattern. brain-20260918T2219-f08746bc0'), 'A useful pattern.');
+  assert.match(context.buildCaptureSystemPrompt_(), /Never show entry IDs/);
+  assert.match(context.askModePrompt_('neutral'), /Never show entry IDs/);
+});
+
 test('a response can be explicitly marked as saved on its entry row', () => {
   const { context, book } = harness();
   const result = context.saveBrainDump('A thought worth keeping.');
@@ -192,7 +200,8 @@ test('UI has one input and three response buttons without navigation tabs', () =
   assert.match(html, /class="brand">BrainDumps<\/div>.*class="sub">Free your mind, one dump at a time\./);
   assert.match(html, /id="catchResponse"/);
   assert.match(html, /id="entryCount"/);
-  assert.match(html, /id="saveResponse"[^>]*>Save response<\/button>/);
+  assert.match(html, /id="saveResponse"[^>]*>Save<\/button>/);
+  assert.match(html, /id="clearResponse"[^>]*>Clear<\/button>/);
   assert.match(html, /Math\.floor\(count\/10\)%6/);
   assert.equal((html.match(/<textarea /g) || []).length, 1);
   for (const mode of ['neutral', 'brainstorm', 'coach']) assert.match(html, new RegExp('data-dump-mode="' + mode + '"'));

@@ -7,6 +7,7 @@ BrainDumps is a Google Apps Script web app based on BrainCatch. It gives each si
 ## What it does
 
 - **Respond:** use one text box to share a thought or ask a question, then submit it with **Neutral**, **Brainstorm**, or **Coach**. Every mode saves the original input. Neutral stays factual, Brainstorm develops possibilities, and Coach offers grounded pushback and a practical next move. Clear actions appear as a plain **To-dos** section. Questions use the complete saved archive. Each response independently has a 60% chance of ending with one follow-up question about a real concern or unresolved point. Recent exchanges provide conversational context. Raw input still saves if AI is unavailable.
+- **Track:** a small badge beneath **Clear** shows the current number of saved entries and changes color every ten entries.
 
 Voice dictation uses the browser's SpeechRecognition API when available. Typing always works.
 

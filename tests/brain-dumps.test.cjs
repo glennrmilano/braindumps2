@@ -73,6 +73,8 @@ test('Catch saves original text and returns an organized response with inline to
   const { context, book } = harness();
   assert.equal(context.getAppConfig().entryCount, 0);
   const result = context.saveBrainDump('I will call Sam tomorrow.');
+  assert.equal(result.entryCount, 1);
+  assert.equal(context.getAppConfig().entryCount, 1);
   assert.match(result.responseMarkdown, /You plan to speak with Sam tomorrow/);
   assert.match(result.responseMarkdown, /### To-dos\n- Call Sam/);
   assert.equal(book.getSheetByName('Entries').rows[1][12], 'I will call Sam tomorrow.');
@@ -179,6 +181,8 @@ test('UI has one input and three response buttons without navigation tabs', () =
   const html = fs.readFileSync('Index.html', 'utf8');
   assert.match(html, /class="brand">BrainDumps<\/div>.*class="sub">Free your mind, one dump at a time\./);
   assert.match(html, /id="catchResponse"/);
+  assert.match(html, /id="entryCount"/);
+  assert.match(html, /Math\.floor\(count\/10\)%6/);
   assert.equal((html.match(/<textarea /g) || []).length, 1);
   for (const mode of ['neutral', 'brainstorm', 'coach']) assert.match(html, new RegExp('data-dump-mode="' + mode + '"'));
   assert.doesNotMatch(html, /id="saveCatch"[^>]*>Dump<\/button>/);

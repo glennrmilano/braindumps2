@@ -29,7 +29,15 @@
     #catchInput { height:430px; }
     input[type=text],input[type=date] { width:100%; min-height:40px; padding:8px; border:1px solid #d9d5cb; border-radius:7px; background:#fff; }
     .actions,.row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-    .actions { justify-content:space-between; margin-top:9px; }
+    .actions { justify-content:space-between; align-items:flex-start; margin-top:9px; }
+    .clear-stack { display:flex; flex-direction:column; align-items:center; gap:4px; }
+    .entry-count { --counter-bg:#fff1e9; --counter-fg:#7d3519; --counter-dot:#a9471c; --counter-border:#efc7b4; display:inline-flex; align-items:center; gap:4px; padding:3px 6px; border:1px solid var(--counter-border); border-radius:999px; background:var(--counter-bg); color:var(--counter-fg); font-size:10px; font-weight:750; line-height:1; white-space:nowrap; transition:background-color .2s,color .2s,border-color .2s; }
+    .entry-count::before { content:""; width:5px; height:5px; border-radius:50%; background:var(--counter-dot); }
+    .entry-count.tone-1 { --counter-bg:#e8f5fb; --counter-fg:#155c7a; --counter-dot:#1c7ea9; --counter-border:#b8dfef; }
+    .entry-count.tone-2 { --counter-bg:#f1ebfb; --counter-fg:#604093; --counter-dot:#8b5cf6; --counter-border:#d9c8f3; }
+    .entry-count.tone-3 { --counter-bg:#eaf4ea; --counter-fg:#366b47; --counter-dot:#65a56f; --counter-border:#c7dfca; }
+    .entry-count.tone-4 { --counter-bg:#faebef; --counter-fg:#87364e; --counter-dot:#c75b7a; --counter-border:#efc4d1; }
+    .entry-count.tone-5 { --counter-bg:#edf0f8; --counter-fg:#35436c; --counter-dot:#5b6fb2; --counter-border:#ccd3e7; }
     .dump-actions { display:flex; gap:10px; margin-left:auto; }
     .dump-actions button { width:100px; min-height:38px; padding:5px 6px; border-radius:18px; font-size:16px; box-shadow:0 3px 7px #163f522e; }
     #clearCatch { border-radius:18px; }
@@ -56,7 +64,7 @@
   <div class="panel">
     <section id="catchPane" class="inside">
       <textarea id="catchInput" aria-label="Your thought or question" placeholder="What's on your mind? Start anywhere. Search your archive or share something new."></textarea>
-      <div class="actions"><div class="row"><button id="clearCatch" type="button">Clear</button><button id="micButton" type="button" hidden>Dictate</button></div><div class="dump-actions" aria-label="Response style"><button class="primary" data-dump-mode="neutral" type="button">Neutral</button><button class="primary" data-dump-mode="brainstorm" type="button">Brainstorm</button><button class="primary" data-dump-mode="coach" type="button">Coach</button></div></div>
+      <div class="actions"><div class="row"><div class="clear-stack"><button id="clearCatch" type="button">Clear</button><span id="entryCount" class="entry-count" aria-live="polite" hidden></span></div><button id="micButton" type="button" hidden>Dictate</button></div><div class="dump-actions" aria-label="Response style"><button class="primary" data-dump-mode="neutral" type="button">Neutral</button><button class="primary" data-dump-mode="brainstorm" type="button">Brainstorm</button><button class="primary" data-dump-mode="coach" type="button">Coach</button></div></div>
       <div id="catchStatus" class="status" role="status"></div>
       <section id="catchResponse" class="item" aria-label="Catch response" hidden><h2>Response</h2><div id="catchResponseText" class="output"></div></section>
     </section>
@@ -76,9 +84,15 @@
   }
   $('#helpButton').onclick=()=>{$('#helpPanel').hidden=!$('#helpPanel').hidden;}; $('#closeHelp').onclick=()=>{$('#helpPanel').hidden=true;};
   $('#clearCatch').onclick=()=>{$('#catchInput').value=''; $('#catchInput').focus();};
+  function renderEntryCount(value) {
+    const count=Math.max(0,Number(value)||0), badge=$('#entryCount');
+    badge.textContent=count+' '+(count===1?'entry':'entries');
+    badge.className='entry-count tone-'+(Math.floor(count/10)%6);
+    badge.hidden=false;
+  }
   function submitDump(mode) {
     const text=$('#catchInput').value.trim(); if(text.length<3||state.busy||state.listening) return;
-    call('saveBrainDump',[text,mode],result=>{ $('#catchInput').value=''; $('#catchInput').blur(); $('#catchStatus').textContent=result.warning ? result.warning : 'Saved · '+result.mode.charAt(0).toUpperCase()+result.mode.slice(1); $('#catchResponseText').innerHTML=markdown(result.responseMarkdown); $('#catchResponse').hidden=false; },$('#catchStatus'));
+    call('saveBrainDump',[text,mode],result=>{ $('#catchInput').value=''; $('#catchInput').blur(); renderEntryCount(result.entryCount); $('#catchStatus').textContent=result.warning ? result.warning : 'Saved · '+result.mode.charAt(0).toUpperCase()+result.mode.slice(1); $('#catchResponseText').innerHTML=markdown(result.responseMarkdown); $('#catchResponse').hidden=false; },$('#catchStatus'));
   }
   document.querySelectorAll('[data-dump-mode]').forEach(button=>button.onclick=()=>submitDump(button.dataset.dumpMode));
   const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
@@ -95,6 +109,7 @@
   }
   call('getAppConfig',[],config=>{
     $('#sheetLink').href=config.spreadsheetUrl; $('#sheetLink').hidden=false;
+    renderEntryCount(config.entryCount);
     if(!config.openAIConfigured) {$('#catchStatus').textContent='OPENAI_API_KEY is not set. Thoughts will still save, but responses need the key.'; $('#catchStatus').classList.add('error');}
   },$('#catchStatus'));
 </script>

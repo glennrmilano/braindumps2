@@ -119,6 +119,7 @@ function saveBrainDump(rawEntry, responseMode) {
     return {
       mode: selectedMode,
       entryId: entryId,
+      entryCount: Math.max(0, store.entries.getLastRow() - 1),
       spreadsheetUrl: store.spreadsheet.getUrl(),
       responseMarkdown: responseMarkdown,
       warning: result.extraction_warning || '',

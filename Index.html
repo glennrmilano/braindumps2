@@ -30,14 +30,14 @@
     input[type=text],input[type=date] { width:100%; min-height:40px; padding:8px; border:1px solid #d9d5cb; border-radius:7px; background:#fff; }
     .actions,.row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
     .actions { justify-content:space-between; align-items:flex-start; margin-top:9px; }
-    .clear-stack { display:flex; flex-direction:column; align-items:center; gap:4px; }
-    .entry-count { --counter-bg:#fff1e9; --counter-fg:#7d3519; --counter-dot:#a9471c; --counter-border:#efc7b4; display:inline-flex; align-items:center; gap:4px; padding:3px 6px; border:1px solid var(--counter-border); border-radius:999px; background:var(--counter-bg); color:var(--counter-fg); font-size:10px; font-weight:750; line-height:1; white-space:nowrap; transition:background-color .2s,color .2s,border-color .2s; }
+    .clear-stack { display:flex; flex-direction:column; align-items:center; gap:8px; }
+    .entry-count { --counter-fg:#7d3519; --counter-dot:#a9471c; display:inline-flex; align-items:center; gap:4px; padding:0 3px; color:var(--counter-fg); font-size:10px; font-weight:750; line-height:1; white-space:nowrap; transition:color .2s; }
     .entry-count::before { content:""; width:5px; height:5px; border-radius:50%; background:var(--counter-dot); }
-    .entry-count.tone-1 { --counter-bg:#e8f5fb; --counter-fg:#155c7a; --counter-dot:#1c7ea9; --counter-border:#b8dfef; }
-    .entry-count.tone-2 { --counter-bg:#f1ebfb; --counter-fg:#604093; --counter-dot:#8b5cf6; --counter-border:#d9c8f3; }
-    .entry-count.tone-3 { --counter-bg:#eaf4ea; --counter-fg:#366b47; --counter-dot:#65a56f; --counter-border:#c7dfca; }
-    .entry-count.tone-4 { --counter-bg:#faebef; --counter-fg:#87364e; --counter-dot:#c75b7a; --counter-border:#efc4d1; }
-    .entry-count.tone-5 { --counter-bg:#edf0f8; --counter-fg:#35436c; --counter-dot:#5b6fb2; --counter-border:#ccd3e7; }
+    .entry-count.tone-1 { --counter-fg:#155c7a; --counter-dot:#1c7ea9; }
+    .entry-count.tone-2 { --counter-fg:#604093; --counter-dot:#8b5cf6; }
+    .entry-count.tone-3 { --counter-fg:#366b47; --counter-dot:#65a56f; }
+    .entry-count.tone-4 { --counter-fg:#87364e; --counter-dot:#c75b7a; }
+    .entry-count.tone-5 { --counter-fg:#35436c; --counter-dot:#5b6fb2; }
     .dump-actions { display:flex; gap:10px; margin-left:auto; }
     .dump-actions button { width:100px; min-height:38px; padding:5px 6px; border-radius:18px; font-size:16px; box-shadow:0 3px 7px #163f522e; }
     #clearCatch { border-radius:18px; }

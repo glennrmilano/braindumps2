@@ -56,7 +56,7 @@ function askModePrompt_(mode) {
   ];
   if (mode === 'neutral') ground.push('Answer directly and factually. Do not coach or brainstorm.');
   if (mode === 'brainstorm') ground.push('Generate distinct possibilities relevant to the question. Separate archive facts from new ideas and say what would need testing.');
-  if (mode === 'coach') ground.push('Identify the through-line, offer useful pushback, a practical next move, and one sharp question when warranted. Ground interpretations in the archive and current dialogue.');
+  if (mode === 'coach') ground.push('Identify the through-line, offer useful pushback, and suggest a practical next move when warranted. Ground interpretations in the archive and current dialogue.');
   return ground.join('\n');
 }
 
@@ -71,7 +71,7 @@ function askMessageSchema_() {
   };
 }
 
-function answerArchiveQuestion_(store, question, askFollowUp, recentDialogue) {
+function answerArchiveQuestion_(store, question, askFollowUp, recentDialogue, mode) {
   const state = readStateMarkdown_(store.state);
   const entries = readAskHistory_(store.entries);
   const budget = MAX_ASK_HISTORY_BYTES - utf8Length_(question + state + JSON.stringify(recentDialogue || [])) - 5000;
@@ -85,7 +85,7 @@ function answerArchiveQuestion_(store, question, askFollowUp, recentDialogue) {
     JSON.stringify(recentDialogue || []),
     'Current question:\n' + question
   ].join('\n\n');
-  const result = callOpenAI_(askModePrompt_('neutral') + '\n' + followUpPrompt_(askFollowUp), payload, askMessageSchema_(), 'brain_dump_ask');
+  const result = callOpenAI_(askModePrompt_(mode) + '\n' + followUpPrompt_(askFollowUp), payload, askMessageSchema_(), 'brain_dump_ask');
   const answer = cleanString_(result.answer_markdown);
   if (!answer) throw new Error('Archive review returned an empty answer.');
   return answer;

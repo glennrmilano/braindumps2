@@ -62,7 +62,7 @@ function getAppConfig() {
   };
 }
 
-function saveBrainDump(rawEntry) {
+function saveBrainDump(rawEntry, responseMode) {
   const text = String(rawEntry || '').trim();
   if (text.length < 3) {
     throw new Error('Write or dictate a little more before saving.');
@@ -76,20 +76,21 @@ function saveBrainDump(rawEntry) {
   try {
     const store = getOrCreateBrainStore_();
     const createdAt = new Date().toISOString();
+    const selectedMode = cleanEnum_(responseMode, ASK_MODES, 'neutral');
     const askFollowUp = Math.random() < 0.6;
     const brainContext = buildBrainContext_(store, text);
 
     let result;
     try {
       result = callOpenAI_(
-        buildCaptureSystemPrompt_(askFollowUp),
+        buildCaptureSystemPrompt_(askFollowUp, selectedMode),
         buildCaptureUserPrompt_(text, brainContext.stateMarkdown, brainContext.indexRows, brainContext.fullEntries, brainContext.recentDialogue, createdAt),
         getCaptureSchema_(),
         'brain_capture'
       );
       if (result.entry && result.entry.type === 'question') {
         try {
-          result.response_markdown = answerArchiveQuestion_(store, text, askFollowUp, brainContext.recentDialogue);
+          result.response_markdown = answerArchiveQuestion_(store, text, askFollowUp, brainContext.recentDialogue, selectedMode);
         } catch (error) {
           result.response_markdown = 'I saved your question, but I could not review the full archive to answer it.';
           result.extraction_warning = 'The archive answer was unavailable. Your question was saved.';
@@ -116,7 +117,7 @@ function saveBrainDump(rawEntry) {
     if (result.state && entry.type !== 'question') rewriteState_(store.state, result.state, createdAt);
 
     return {
-      mode: 'capture',
+      mode: selectedMode,
       entryId: entryId,
       spreadsheetUrl: store.spreadsheet.getUrl(),
       responseMarkdown: responseMarkdown,
@@ -603,7 +604,17 @@ function followUpPrompt_(askFollowUp) {
     : 'Do not add a follow-up question.';
 }
 
-function buildCaptureSystemPrompt_(askFollowUp) {
+function responseModePrompt_(mode) {
+  if (mode === 'brainstorm') {
+    return 'Use Brainstorm mode. After faithfully acknowledging the user\'s meaning, offer a few distinct possibilities, connections, or ideas that could help them explore it. Clearly separate saved facts from new ideas and say what would need testing.';
+  }
+  if (mode === 'coach') {
+    return 'Use Coach mode. After faithfully acknowledging the user\'s meaning, identify the through-line, offer candid but constructive pushback, and suggest a practical next move when useful. Ground every interpretation in what the user shared or saved.';
+  }
+  return 'Use Neutral mode. Respond directly and factually. Do not coach or brainstorm.';
+}
+
+function buildCaptureSystemPrompt_(askFollowUp, mode) {
   return [
     'You are BrainDumps. One input accepts thoughts and questions. Capture the user\'s words faithfully and give a useful response.',
     'Capture what the user says, connect it to prior entries when warranted, and report current state.',
@@ -615,6 +626,7 @@ function buildCaptureSystemPrompt_(askFollowUp) {
     'The To-dos list is part of the acknowledgment only. Do not claim that tasks were created, tracked, or scheduled.',
     'Prefer concrete facts, goals, decisions, contradictions, recurring patterns, and unresolved threads.',
     'Keep state compact. Do not preserve stale or passing remarks as goals.',
+    responseModePrompt_(mode),
     followUpPrompt_(askFollowUp)
   ].join('\n');
 }

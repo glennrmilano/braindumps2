@@ -30,6 +30,8 @@
     input[type=text],input[type=date] { width:100%; min-height:40px; padding:8px; border:1px solid #d9d5cb; border-radius:7px; background:#fff; }
     .actions,.row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
     .actions { justify-content:space-between; margin-top:9px; }
+    .dump-actions { display:flex; gap:4px; margin-left:auto; }
+    .dump-actions button { min-height:36px; padding:5px 8px; font-size:13px; }
     .status { color:#5c6a63; min-height:22px; margin-top:10px; font-size:13px; }
     .status.error { color:#923a31; font-weight:650; }
     .item { padding:12px; border:1px solid #e0ddd4; border-radius:8px; background:#fff; }
@@ -39,7 +41,7 @@
     .output pre { overflow:auto; }
     .output table { display:block; overflow:auto; border-collapse:collapse; }
     .output th,.output td { border:1px solid #ddd; padding:6px; }
-    @media(max-width:700px) { header{padding:4px 10px;min-height:40px;} .brandline{gap:5px;} .brand{font-size:18px;} .sub{font-size:11px;} .brand-divider{height:18px;} .header-links{gap:2px;} #helpButton{font-size:0;min-width:28px;padding:4px;} #helpButton::before{content:"?";font-size:14px;} main{margin:4px auto;padding:0 7px 20px;} .inside{padding:9px;} textarea{min-height:130px;max-height:28dvh;font-size:16px;} #catchInput{height:260px;max-height:none;} }
+    @media(max-width:700px) { header{padding:4px 10px;min-height:40px;} .brandline{gap:5px;} .brand{font-size:18px;} .sub{font-size:11px;} .brand-divider{height:18px;} .header-links{gap:2px;} #helpButton{font-size:0;min-width:28px;padding:4px;} #helpButton::before{content:"?";font-size:14px;} main{margin:4px auto;padding:0 7px 20px;} .inside{padding:9px;} textarea{min-height:130px;max-height:28dvh;font-size:16px;} #catchInput{height:260px;max-height:none;} .dump-actions button{padding:4px 7px;font-size:12px;} }
     @media(max-width:430px) { header{flex-wrap:wrap;} .header-links{width:100%;justify-content:flex-end;margin-top:-3px;} }
   </style>
 </head>
@@ -52,13 +54,13 @@
   <div class="panel">
     <section id="catchPane" class="inside">
       <textarea id="catchInput" aria-label="Your thought or question" placeholder="What's on your mind? Start anywhere. Search your archive or share something new."></textarea>
-      <div class="actions"><div class="row"><button id="clearCatch" type="button">Clear</button><button id="micButton" type="button" hidden>Dictate</button></div><button id="saveCatch" class="primary" type="button">Dump</button></div>
+      <div class="actions"><div class="row"><button id="clearCatch" type="button">Clear</button><button id="micButton" type="button" hidden>Dictate</button></div><div class="dump-actions" aria-label="Response style"><button class="primary" data-dump-mode="neutral" type="button">Neutral</button><button class="primary" data-dump-mode="brainstorm" type="button">Brainstorm</button><button class="primary" data-dump-mode="coach" type="button">Coach</button></div></div>
       <div id="catchStatus" class="status" role="status"></div>
       <section id="catchResponse" class="item" aria-label="Catch response" hidden><h2>Response</h2><div id="catchResponseText" class="output"></div></section>
     </section>
   </div>
 </main>
-<div id="helpPanel" class="panel" hidden style="position:fixed;top:52px;right:10px;max-width:330px;z-index:3;padding:14px;box-shadow:0 14px 40px #0002"><strong>BrainDumps</strong><p>Share a thought or ask a question. BrainDumps saves what you write and responds using your archive. Clear actions you mention appear as to-dos in the response.</p><button id="closeHelp" type="button">Close</button></div>
+<div id="helpPanel" class="panel" hidden style="position:fixed;top:52px;right:10px;max-width:330px;z-index:3;padding:14px;box-shadow:0 14px 40px #0002"><strong>BrainDumps</strong><p>Share a thought or ask a question, then choose Neutral, Brainstorm, or Coach for the response style. Every choice saves what you write and uses your archive. Clear actions you mention appear as to-dos in the response.</p><button id="closeHelp" type="button">Close</button></div>
 <?!= includeMarkdownLibraries_(); ?>
 <script>
   const $ = selector => document.querySelector(selector);
@@ -72,10 +74,11 @@
   }
   $('#helpButton').onclick=()=>{$('#helpPanel').hidden=!$('#helpPanel').hidden;}; $('#closeHelp').onclick=()=>{$('#helpPanel').hidden=true;};
   $('#clearCatch').onclick=()=>{$('#catchInput').value=''; $('#catchInput').focus();};
-  $('#saveCatch').onclick=()=>{
+  function submitDump(mode) {
     const text=$('#catchInput').value.trim(); if(text.length<3||state.busy||state.listening) return;
-    call('saveBrainDump',[text],result=>{ $('#catchInput').value=''; $('#catchInput').blur(); $('#catchStatus').textContent=result.warning ? result.warning : 'Saved.'; $('#catchResponseText').innerHTML=markdown(result.responseMarkdown); $('#catchResponse').hidden=false; },$('#catchStatus'));
-  };
+    call('saveBrainDump',[text,mode],result=>{ $('#catchInput').value=''; $('#catchInput').blur(); $('#catchStatus').textContent=result.warning ? result.warning : 'Saved · '+result.mode.charAt(0).toUpperCase()+result.mode.slice(1); $('#catchResponseText').innerHTML=markdown(result.responseMarkdown); $('#catchResponse').hidden=false; },$('#catchStatus'));
+  }
+  document.querySelectorAll('[data-dump-mode]').forEach(button=>button.onclick=()=>submitDump(button.dataset.dumpMode));
   const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(SpeechRecognition) {
     const mic=$('#micButton'); mic.hidden=false;

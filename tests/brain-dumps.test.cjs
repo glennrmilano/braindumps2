@@ -95,6 +95,19 @@ test('Catch response omits To-dos for a thought without an explicit action', () 
   assert.doesNotMatch(result.responseMarkdown, /To-dos/);
 });
 
+test('each response button applies its mode while preserving the same capture flow', () => {
+  for (const [mode, phrase] of [
+    ['neutral', 'Respond directly and factually'],
+    ['brainstorm', 'offer a few distinct possibilities'],
+    ['coach', 'offer candid but constructive pushback']
+  ]) {
+    const { context, requests } = harness();
+    const result = context.saveBrainDump('A thought worth keeping.', mode);
+    assert.equal(result.mode, mode);
+    assert.match(requests[0].messages[0].content, new RegExp(phrase));
+  }
+});
+
 test('follow-up choice is made independently for every Dump at a 60% threshold', () => {
   const turns = harness({ random: [0.59, 0.6] });
   turns.context.saveBrainDump('A thought worth keeping.');
@@ -162,11 +175,12 @@ test('legacy todo reminder triggers cannot send email', () => {
   assert.equal(mail.length, 0);
 });
 
-test('UI has one input and response without navigation tabs', () => {
+test('UI has one input and three response buttons without navigation tabs', () => {
   const html = fs.readFileSync('Index.html', 'utf8');
   assert.match(html, /class="brand">BrainDumps<\/div>.*class="sub">Free your mind, one dump at a time\./);
   assert.match(html, /id="catchResponse"/);
   assert.equal((html.match(/<textarea /g) || []).length, 1);
-  assert.match(html, /id="saveCatch"[^>]*>Dump<\/button>/);
+  for (const mode of ['neutral', 'brainstorm', 'coach']) assert.match(html, new RegExp('data-dump-mode="' + mode + '"'));
+  assert.doesNotMatch(html, /id="saveCatch"[^>]*>Dump<\/button>/);
   assert.doesNotMatch(html, /id="catchTab"|id="askTab"|Catch saves your thought|data-mode=/);
 });
